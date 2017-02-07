@@ -30,7 +30,6 @@ include_directories(
 
 set(malos_zigbee_src
   malos_zigbee.cpp
-  driver_manager.cpp driver_manager.h
   driver_zigbee.cpp driver_zigbee.h
   tcp_client.cpp tcp_client.h
   ${MALOS_PROTO_SRC} ${MALOS_PROTO_HEADER}

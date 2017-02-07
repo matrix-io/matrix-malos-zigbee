@@ -19,7 +19,7 @@
 #include <iostream>
 #include <thread>
 
-#include "./driver_manager.h"
+#include <matrix_malos/driver_manager.h>
 #include "./driver_zigbee.h"
 
 const int kBasePort = 20012;
@@ -34,14 +34,14 @@ int RunServer() {
   std::cerr << "**************" << std::endl;
   std::cerr << std::endl;
 
-  DriverManager driver_manager(kBasePort, kUnsecureBindScope);
+  DriverManager driver_manager(kBasePort + 4 * 5 + 1, kUnsecureBindScope);
   std::cerr << "You can query specific driver info using port " +
                    std::to_string(20012)
             << "." << std::endl;
 
 
   ZigbeeDriver driver_zigbee;
-  if (!driver_zigbee.Init(kBasePort + 4 * 5 + 1, kUnsecureBindScope)) {
+  if (!driver_zigbee.Init(kBasePort + 4 * 5 + 2, kUnsecureBindScope)) {
     return 1;
   }
   driver_manager.RegisterDriver(&driver_zigbee);
