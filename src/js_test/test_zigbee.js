@@ -12,7 +12,7 @@
 // BasePort + 3 => Data port. Receive data from device.
 
 var creator_ip = '127.0.0.1';
-var create_zigbee_base_port = 20013 + 20;
+var create_zigbee_base_port = 30013 + 20;
 var protoBuf = require("protobufjs");
 var zmq = require('zmq');
 
