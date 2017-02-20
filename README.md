@@ -50,6 +50,8 @@ There are some steps to follow in order to check the state of the connection bef
 + With this info you can see what types of zigbee devices are connected, so you can decide which ones you want to interact with.
 + And finally you can start sending commands to turning lights on/off, setting colors, controlling your smart outlet or any other device.
 
+Ok, let's go step by step:
+
 #### Checking the conection with the Gateway   
 To request the status of the connection with the Gateway send the zigbee IS_PROXY_ACTIVE command.
 
