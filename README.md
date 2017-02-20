@@ -89,7 +89,71 @@ subSocket.on('message', function(buffer) {
 ``` 
 
 #### Resetting the Gateway
+
+If from the previous step you get that the Gateway is not connected, you can reset it using the command RESET_PROXY.
+
+Example:
+
+```
+...
+config.zigbee_message.set_type(matrixMalosBuilder.ZigBeeMsg.ZigBeeCmdType.NETWORK_MGMT);
+config.zigbee_message.network_mgmt_cmd.set_type(
+	matrixMalosBuilder.ZigBeeMsg.NetworkMgmtCmd.NetworkMgmtCmdTypes.RESET_PROXY);
+configSocket.send(config.encode().toBuffer());
+...
+```
+
 #### Checking the zigbee netwotk status 
+
+After your check the conection with the Gateway is working, you have ton check the status of the zigbee network.
+
+To check the zigbbe network status use the `NetworkStatus` proto.
+
+```
+// Network Status Definition
+message NetworkStatus{
+
+  enum Status
+  {
+    /** The node is not associated with a network in any way. */
+    NO_NETWORK = 0;
+    /** The node is currently attempting to join a network. */
+    JOINING_NETWORK = 1;
+    /* The node is joined to a network. */
+    JOINED_NETWORK = 2;
+    /** The node is an end device joined to a network but its parent
+        is not responding. */
+    JOINED_NETWORK_NO_PARENT = 3;
+    /** The node is in the process of leaving its current network. */
+    LEAVING_NETWORK = 4;
+  }
+}
+```
+Example of sending a NETWORK_STATUS command :
+
+```
+...
+config.zigbee_message.network_mgmt_cmd.set_type(
+	matrixMalosBuilder.ZigBeeMsg.NetworkMgmtCmd.NetworkMgmtCmdTypes.NETWORK_STATUS)
+configSocket.send(config.encode().toBuffer());
+...
+```
+After sending the NETWORK_STATUS command you should receive a NETWORK_STATUS back with the response.
+Example:
+```
+...
+switch (zig_msg.network_mgmt_cmd.network_status.type) {
+	case matrixMalosBuilder.ZigBeeMsg.NetworkMgmtCmd.NetworkStatus.Status.NO_NETWORK:
+		console.log('No Zigbee network present');
+		// Doing something like ... creating a new zigbee network
+	break;
+	...
+}
+...
+```
+
+
+
 #### Allowing devices to joing
 #### Getting the discovery data
 ####  
