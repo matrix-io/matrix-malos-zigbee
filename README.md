@@ -103,32 +103,11 @@ configSocket.send(config.encode().toBuffer());
 ...
 ```
 
-#### Checking the zigbee netwotk status 
+#### Checking the zigbee network status 
 
 After your check the conection with the Gateway is working, you have ton check the status of the zigbee network.
+To check the zigbbe network status use the NETWORK_STATUS command.
 
-To check the zigbbe network status use the `NetworkStatus` proto.
-
-```
-// Network Status Definition
-message NetworkStatus{
-
-  enum Status
-  {
-    /** The node is not associated with a network in any way. */
-    NO_NETWORK = 0;
-    /** The node is currently attempting to join a network. */
-    JOINING_NETWORK = 1;
-    /* The node is joined to a network. */
-    JOINED_NETWORK = 2;
-    /** The node is an end device joined to a network but its parent
-        is not responding. */
-    JOINED_NETWORK_NO_PARENT = 3;
-    /** The node is in the process of leaving its current network. */
-    LEAVING_NETWORK = 4;
-  }
-}
-```
 Example of sending a NETWORK_STATUS command :
 
 ```
@@ -152,8 +131,36 @@ switch (zig_msg.network_mgmt_cmd.network_status.type) {
 ...
 ```
 
+#### Creating a new Zigbee network
 
+To create a new Zigbee network use the CREATE_NWK command.
+
+Example:
+
+```
+...
+config.zigbee_message.network_mgmt_cmd.set_type(
+	matrixMalosBuilder.ZigBeeMsg.NetworkMgmtCmd.NetworkMgmtCmdTypes.CREATE_NWK)
+configSocket.send(config.encode().toBuffer());
+...
+```
+After you sent this command you should receive a NETWORK_STATUS with the result.
 
 #### Allowing devices to joing
+
+When you have successfully created the Zigbee network is time to start connecting devices to it. In orther to add new devices you have to put the network in joining status. Use the PERMIT_JOIN command for this.
+
+Example:
+
+```
+config.zigbee_message.set_type(matrixMalosBuilder.ZigBeeMsg.ZigBeeCmdType.NETWORK_MGMT);
+config.zigbee_message.network_mgmt_cmd.set_type(
+	matrixMalosBuilder.ZigBeeMsg.NetworkMgmtCmd.NetworkMgmtCmdTypes.PERMIT_JOIN);
+var permit_join_params = new matrixMalosBuilder.ZigBeeMsg.NetworkMgmtCmd.PermitJoinParams;
+permit_join_params.setTime(60);
+config.zigbee_message.network_mgmt_cmd.set_permit_join_params(permit_join_params);
+configSocket.send(config.encode().toBuffer());
+```
+
 #### Getting the discovery data
 ####  
