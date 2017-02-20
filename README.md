@@ -35,7 +35,7 @@ Furthermore each Endpoint can support the functionality of one or more **cluster
 
 Let's say we have a zigbee network of a MATRIX Creator, a smart bulb and a smart outlet. Each device will have their own **NodeID** that makes them unique in the network. Also each device would have a certain number of **Endpoints** where they implement a specific set of functionalities. Then inside each **Endpoint** each device will implement clusters related to that Endpoint.
 
-For example , the bulb probably implements a Home Automation Profile in one of its **Endpoints**, and the clusters inside this **Endpoint** : ON_OFF, LEVEL_CONTROL, COLOR_CONTROL and SCENES clusters. On the other hand the smart outlet just implements the ON_OFF and SCENES clusters, because it's only capable of turning its output on and off.
+For example , the bulb probably could implement a Home Automation Profile in one of its **Endpoints**, the clusters inside this **Endpoint** could be ON_OFF, LEVEL_CONTROL, COLOR_CONTROL and SCENES cluster. On the other hand the smart outlet just implements the ON_OFF and SCENES clusters, because it's only capable of turning its output on and off.
 
 ## Using the driver
 
@@ -45,12 +45,50 @@ There are some steps to follow in order to check the state of the connection bef
  + If no connection with the Gateway, reset the Gateway
 + Then check the zigbee network status.
  + If its down you can turn it on
-+ Open the network to allow devices to join the netwotk (while the network is up)
++ Open the network to allow devices to join the network (while the network is up)
 + Then you can start turning on you zigbee devices and waiting for the zigbee network automatic discovery to give you all the info for the devices connected.
 + With this info you can see what types of zigbee devices are connected, so you can decide which ones you want to interact with.
-+ And finally you can start turning lights on/off, setting colors, or controlling your smart outlet.
++ And finally you can start sending commands to turning lights on/off, setting colors, controlling your smart outlet or any other device.
 
 #### Checking the conection with the Gateway   
+To request the status of the connection with the Gateway send the zigbee IS_PROXY_ACTIVE command.
+
+For example (NodeJS):
+```
+var protoBuilder = protoBuf.loadProtoFile('../../protocol-buffers/malos/driver.proto');
+var matrixMalosBuilder = protoBuilder.build("matrix_malos");
+config.zigbee_message.network_mgmt_cmd.set_type(
+	matrixMalosBuilder.ZigBeeMsg.NetworkMgmtCmd.NetworkMgmtCmdTypes.IS_PROXY_ACTIVE)
+configSocket.send(config.encode().toBuffer());
+```
+You'll receive a IS_PROXY_ACTIVE command back from the driver with the state of the conection in the `is_proxy_active` field of the `NetworkMgmtCmd` command.
+
+Here is an example:
+```
+...
+var subSocket = zmq.socket('sub');
+subSocket.connect('tcp://' + creator_ip + ':' + (create_zigbee_base_port + 3));
+subSocket.subscribe('');
+subSocket.on('message', function(buffer) {
+
+	switch (zig_msg.network_mgmt_cmd.type) {
+		...
+		case matrixMalosBuilder.ZigBeeMsg.NetworkMgmtCmd.NetworkMgmtCmdTypes.IS_PROXY_ACTIVE:
+			if (zig_msg.network_mgmt_cmd.is_proxy_active) {
+			  console.log('Gateway connected');
+			  gateway_up = true; 
+			} else {
+			  console.log('Gateway Reset Failed.');
+			  process.exit(1);
+			}
+			...
+		break;
+    ...
+}
+...
+``` 
+
+#### Resetting the Gateway
 #### Checking the zigbee netwotk status 
 #### Allowing devices to joing
 #### Getting the discovery data
