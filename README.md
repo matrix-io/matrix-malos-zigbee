@@ -153,14 +153,80 @@ When you have successfully created the Zigbee network is time to start connectin
 Example:
 
 ```
+...
 config.zigbee_message.set_type(matrixMalosBuilder.ZigBeeMsg.ZigBeeCmdType.NETWORK_MGMT);
 config.zigbee_message.network_mgmt_cmd.set_type(
 	matrixMalosBuilder.ZigBeeMsg.NetworkMgmtCmd.NetworkMgmtCmdTypes.PERMIT_JOIN);
 var permit_join_params = new matrixMalosBuilder.ZigBeeMsg.NetworkMgmtCmd.PermitJoinParams;
-permit_join_params.setTime(60);
+permit_join_params.setTime(60); // putting the network in joining state for 60 sec
 config.zigbee_message.network_mgmt_cmd.set_permit_join_params(permit_join_params);
 configSocket.send(config.encode().toBuffer());
+...
 ```
+After you send this command the network will be looking for new devices. Now you have to go and turn on the devices you want to add to the network. Also, you have to make sure the devices have been reset (unpair from any prevoius zigbee network, if the device is new there isn't need for resetting).
 
 #### Getting the discovery data
-####  
+After sending a joining command you should wait for the discovery info message DISCOVERY_INFO that the driver sends you when it finish to read all info of the new devices connected.
+
+Example:
+
+```
+var subSocket = zmq.socket('sub');
+subSocket.connect('tcp://' + creator_ip + ':' + (create_zigbee_base_port + 3));
+subSocket.subscribe('');
+subSocket.on('message', function(buffer) {
+  	var zig_msg = new matrixMalosBuilder.ZigBeeMsg.decode(buffer);
+    switch (zig_msg.network_mgmt_cmd.type) {
+	...
+	case matrixMalosBuilder.ZigBeeMsg.NetworkMgmtCmd.NetworkMgmtCmdTypes.DISCOVERY_INFO:
+      
+		var zig_msg = new matrixMalosBuilder.ZigBeeMsg.decode(buffer).toRaw();
+      
+		// Looking inside the list of devices from the discovery info 
+		for (var i = 0; i < zig_msg.network_mgmt_cmd.connected_nodes.length; i++) {
+			for (var j = 0;j < zig_msg.network_mgmt_cmd.connected_nodes[i].endpoints.length;j++) {
+			  for (var k = 0; k < zig_msg.network_mgmt_cmd.connected_nodes[i].endpoints[j].clusters.length;k++) {
+			  // ... do something
+			  }
+			}
+		}
+
+	break;
+	...
+	}
+}
+
+```
+With the the discovery data you can "see" which devices joined and what type of Endpoints, Clusters they implement. So, now you can elaborate a list of devices and store relevant data from them:
+
+Example :
++ NodeId's
++ Endpoint numbers
++ Clusters implemented 
+
+#### Controlling the devices
+At this point you will have a list of devices conected. Also access to the NodeId's, clusters and all the details about each device.
+Let's send TOGGLE commands to all nodes connected every 2 seconds.
+```
+...
+function ToggleNodes() {
+  if (!nodes_discovered) return;
+  config.zigbee_message.set_type(matrixMalosBuilder.ZigBeeMsg.ZigBeeCmdType.ZCL);
+  config.zigbee_message.zcl_cmd.set_type(matrixMalosBuilder.ZigBeeMsg.ZCLCmd.ZCLCmdType.ON_OFF);
+  config.zigbee_message.zcl_cmd.onoff_cmd.set_type(
+      matrixMalosBuilder.ZigBeeMsg.ZCLCmd.OnOffCmd.ZCLOnOffCmdType.TOGGLE);
+
+  setInterval(function() {
+    for (var i = 0; i < nodes_id.length; i++) {
+      
+      process.stdout.write('Sending toggle command to Node: ')
+      process.stdout.write(nodes_id[i] + "\n")
+
+      config.zigbee_message.zcl_cmd.set_node_id(nodes_id[i]);
+      config.zigbee_message.zcl_cmd.set_endpoint_index(endpoints_index[i]);
+      configSocket.send(config.encode().toBuffer());
+    }
+  }, 2000);
+}
+...
+```
