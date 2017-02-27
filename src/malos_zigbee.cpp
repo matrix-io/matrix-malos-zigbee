@@ -22,7 +22,7 @@
 #include <matrix_malos/driver_manager.h>
 #include "./driver_zigbee.h"
 
-const int kBasePort = 30012;
+const int kBasePort = 40000;
 
 const char kUnsecureBindScope[] = "*";
 
@@ -36,12 +36,12 @@ int RunServer() {
 
   DriverManager driver_manager(kBasePort, kUnsecureBindScope);
   std::cerr << "You can query specific driver info using port " +
-                   std::to_string(20012)
+                   std::to_string(kBasePort)
             << "." << std::endl;
 
 
   ZigbeeDriver driver_zigbee;
-  if (!driver_zigbee.Init(kBasePort + 4 * 5 + 2, kUnsecureBindScope)) {
+  if (!driver_zigbee.Init(kBasePort + 1, kUnsecureBindScope)) {
     return 1;
   }
   driver_manager.RegisterDriver(&driver_zigbee);
