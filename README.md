@@ -4,7 +4,7 @@ The zigbee driver allows application to access the zigbee capabilities of the MA
 
 ## Zigbee network concepts
 
-<a href="https://github.com/matrix-io/matrix-malos-zigbee/blob/yc/driver_doc/zigbee_addresses.png"><img src="https://github.com/matrix-io/matrix-malos-zigbee/blob/yc/driver_doc/zigbee_addresses.png" align="right" width="500" ></a>
+<a href="https://github.com/matrix-io/matrix-malos-zigbee/blob/master/zigbee_addresses.png"><img src="https://github.com/matrix-io/matrix-malos-zigbee/blob/master/zigbee_addresses.png" align="right" width="500" ></a>
 
 The key concepts you need to know to use this driver are mostly related to the zigbee network. Zigbee networks are form by nodes, each physical device connected is a node in the network.
 
