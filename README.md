@@ -2,6 +2,29 @@
 
 The zigbee driver allows application to access the zigbee capabilities of the MATRIX Creator through proto messages. the Gateway app running the zigbee stack that talks with the actual zigbee radio chip on the MATRIX Creator. 
 
+### Pre-Requisites
+cmake, git, g++  and 0MQ
+```
+sudo apt-get update;
+sudo apt-get upgrade;
+sudo apt-get install libzmq3-dev cmake g++ git;
+```
+
+### Cloning & compiling
+```
+git clone https://github.com/matrix-io/matrix-malos-zigbee.git
+cd matrix-malos-zigbee
+git submodule update --init
+mkdir build && cd build
+cmake ..
+make
+```
+### Installing
+```
+cd matrix-malos-zigbee/build
+sudo make install
+```
+
 ## Zigbee network concepts
 
 <a href="https://github.com/matrix-io/matrix-malos-zigbee/blob/master/zigbee_addresses.png"><img src="https://github.com/matrix-io/matrix-malos-zigbee/blob/master/zigbee_addresses.png" align="right" width="500" ></a>
