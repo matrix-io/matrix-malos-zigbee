@@ -24,6 +24,14 @@ make
 cd matrix-malos-zigbee/build
 sudo make install
 ```
+### Starting manually
+```
+# malos_zigbee runs as a service, but to stop it run:
+sudo killall malos_zigbee
+
+# to run manually, use:
+malos_zigbee
+```
 
 ## Zigbee network concepts
 
