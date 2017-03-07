@@ -5,9 +5,10 @@ The zigbee driver allows application to access the zigbee capabilities of the MA
 ### Pre-Requisites
 cmake, git, g++  and 0MQ
 ```
+echo "deb http://packages.matrix.one/matrix-creator/ ./" | sudo tee --append /etc/apt/sources.list;
 sudo apt-get update;
 sudo apt-get upgrade;
-sudo apt-get install libzmq3-dev cmake g++ git;
+sudo apt-get install cmake g++ git;
 ```
 
 ### Cloning & compiling
@@ -21,8 +22,8 @@ make
 ```
 ### Installing
 ```
-cd matrix-malos-zigbee/build
-sudo make install
+sudo apt-get install matrix-creator-malos-zigbee
+sudo reboot
 ```
 ### Starting manually
 ```
@@ -31,6 +32,12 @@ sudo killall malos_zigbee
 
 # to run manually, use:
 malos_zigbee
+```
+
+### Upgrade
+```
+sudo apt-get update && sudo apt-get upgrade
+sudo reboot
 ```
 
 ## Zigbee network concepts
