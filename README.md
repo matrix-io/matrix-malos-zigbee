@@ -2,9 +2,46 @@
 
 The zigbee driver allows application to access the zigbee capabilities of the MATRIX Creator through proto messages. the Gateway app running the zigbee stack that talks with the actual zigbee radio chip on the MATRIX Creator. 
 
+### Pre-Requisites
+cmake, git, g++  and 0MQ
+```
+echo "deb http://packages.matrix.one/matrix-creator/ ./" | sudo tee --append /etc/apt/sources.list;
+sudo apt-get update;
+sudo apt-get upgrade;
+sudo apt-get install cmake g++ git;
+```
+### Installing
+```
+sudo apt-get install matrix-creator-malos-zigbee
+sudo reboot
+```
+### Cloning & compiling
+```
+git clone https://github.com/matrix-io/matrix-malos-zigbee.git
+cd matrix-malos-zigbee
+git submodule update --init
+mkdir build && cd build
+cmake ..
+make
+```
+### Starting manually
+```
+# malos_zigbee runs as a service, but to stop it run:
+sudo killall malos_zigbee
+
+# to run manually, use:
+malos_zigbee
+```
+
+### Upgrade
+```
+sudo apt-get update && sudo apt-get upgrade
+sudo reboot
+```
+
 ## Zigbee network concepts
 
-<a href="https://github.com/matrix-io/matrix-malos-zigbee/blob/yc/driver_doc/zigbee_addresses.png"><img src="https://github.com/matrix-io/matrix-malos-zigbee/blob/yc/driver_doc/zigbee_addresses.png" align="right" width="500" ></a>
+<a href="https://github.com/matrix-io/matrix-malos-zigbee/blob/master/zigbee_addresses.png"><img src="https://github.com/matrix-io/matrix-malos-zigbee/blob/master/zigbee_addresses.png" align="right" width="500" ></a>
 
 The key concepts you need to know to use this driver are mostly related to the zigbee network. Zigbee networks are form by nodes, each physical device connected is a node in the network.
 
