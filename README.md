@@ -10,7 +10,11 @@ sudo apt-get update;
 sudo apt-get upgrade;
 sudo apt-get install cmake g++ git;
 ```
-
+### Installing
+```
+sudo apt-get install matrix-creator-malos-zigbee
+sudo reboot
+```
 ### Cloning & compiling
 ```
 git clone https://github.com/matrix-io/matrix-malos-zigbee.git
@@ -19,11 +23,6 @@ git submodule update --init
 mkdir build && cd build
 cmake ..
 make
-```
-### Installing
-```
-sudo apt-get install matrix-creator-malos-zigbee
-sudo reboot
 ```
 ### Starting manually
 ```
