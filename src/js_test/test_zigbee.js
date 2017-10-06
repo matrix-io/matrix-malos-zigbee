@@ -35,23 +35,6 @@ var nodes_discovered = 3;
 var nodes_id = [];
 var endpoints_index = [];
 
-// ------------------------- ZigBee --------------------------
-var config = matrix_io.malos.v1.driver.DriverConfig.create({
-  zigbeeMessage: matrix_io.malos.v1.comm.ZigbeeMsg.create(
-    type: matrix_io.malos.v1.comm.ZigBeeMsg.ZigBeeCmdType.NETWORK_MGMT,
-    zclCmd: matrix_io.malos.v1.comm.ZigBeeMsg.ZCLCmd.create({ 
-      onOffCmd: matrix_io.malos.v1.comm.ZigBeeMsg.ZCLCmd.OnOffCmd.create({
-	type: matrix_io.malos.v1.comm.ZigBeeMsg.ZCLCmd.OnOffCmd.ZCLOnOffCmdType.ON
-      })
-      colorControl: matrix_io.malos.v1.comm.ZigBeeMsg.ZCLCmd.create({
-        type: matrix_io.malos.v1.comm.ZigBeeMsg.ZCLCmd.
-      })
-    }),
-    networkMgmtCmd: matrix_io.malos.v1.comm.ZigBeeMsg.NetworkMrgmtCmd.create({
-     }) 
-  }) 
-});
-
 //-----  Print the errors that the ZigBee driver sends ------------
 var errorSocket = zmq.socket('sub');
 errorSocket.connect('tcp://' + creator_ip + ':' +
@@ -62,10 +45,6 @@ errorSocket.on('message', function(error_message) {
                        "\n");
 });
 
-// ----- Create the socket for sending data to the ZigBee driver ----
-
-var configSocket = zmq.socket('push');
-configSocket.connect('tcp://' + creator_ip + ':' + create_zigbee_base_port);
 
 // ------------ Starting to ping the driver -----------------------
 
@@ -244,69 +223,71 @@ subSocket.on('message', function(buffer) {
 
 });
 
-ResetGateway();
-
-function ResetGateway() {
-  // --- Setting the delay_between_updates and set_timeout_after_last_ping --
-  console.log('Setting the Zigbee Driver');
-  config.set_delay_between_updates(1);
-  config.set_timeout_after_last_ping(1);
-  configSocket.send(config.encode().toBuffer());
-
-  // ---- Creating the base proto zigbee message --------------------
-  config = new matrixMalosBuilder.DriverConfig;
-
-  var zig_msg = new matrixMalosBuilder.ZigBeeMsg;
-  var network_mgmt_cmd = new matrixMalosBuilder.ZigBeeMsg.NetworkMgmtCmd;
-  var zcl_cmd = new matrixMalosBuilder.ZigBeeMsg.ZCLCmd;
-  var onoff_cmd = new matrixMalosBuilder.ZigBeeMsg.ZCLCmd.OnOffCmd;
-  var colorcontrol_cmd =
-      new matrixMalosBuilder.ZigBeeMsg.ZCLCmd.ColorControlCmd;
-  var movetohueandsat_params = new matrixMalosBuilder.ZigBeeMsg.ZCLCmd
-                                   .ColorControlCmd.MoveToHueAndSatCmdParams;
-
-
-  zig_msg.set_zcl_cmd(zcl_cmd);
-  zig_msg.zcl_cmd.set_onoff_cmd(onoff_cmd);
-  zig_msg.zcl_cmd.set_colorcontrol_cmd(colorcontrol_cmd);
-  zig_msg.zcl_cmd.colorcontrol_cmd.set_movetohueandsat_params(
-      movetohueandsat_params);
-  zig_msg.set_network_mgmt_cmd(network_mgmt_cmd);
-  config.set_zigbee_message(zig_msg);
-
-  // ------------ Reseting the Gateway App -----------------------
-  console.log('Reseting the Gateway App');
-  config.zigbee_message.set_type(
-      matrixMalosBuilder.ZigBeeMsg.ZigBeeCmdType.NETWORK_MGMT);
-  config.zigbee_message.network_mgmt_cmd.set_type(
-      matrixMalosBuilder.ZigBeeMsg.NetworkMgmtCmd.NetworkMgmtCmdTypes
-          .RESET_PROXY);
-  configSocket.send(config.encode().toBuffer());
-
-  // ------------ Checking connection with the Gateway ----------------------
-  console.log('Checking connection with the Gateway');
-  config.zigbee_message.network_mgmt_cmd
-      .set_type(matrixMalosBuilder.ZigBeeMsg.NetworkMgmtCmd.NetworkMgmtCmdTypes
-                    .IS_PROXY_ACTIVE)
-          configSocket.send(config.encode().toBuffer());
-}
-
+// ---------------- Toggle ------------------  OK
 function ToggleNodes() {
   if (!nodes_discovered) return;
-  config.zigbee_message.set_type(
-      matrixMalosBuilder.ZigBeeMsg.ZigBeeCmdType.ZCL);
-  config.zigbee_message.zcl_cmd.set_type(
-      matrixMalosBuilder.ZigBeeMsg.ZCLCmd.ZCLCmdType.ON_OFF);
-  config.zigbee_message.zcl_cmd.onoff_cmd.set_type(
-      matrixMalosBuilder.ZigBeeMsg.ZCLCmd.OnOffCmd.ZCLOnOffCmdType.TOGGLE);
+
+  var on_off_msg = matrix_io.malos.v1.driver.DriverConfig.create({
+    zigbeeMessage: matrix_io.malos.v1.comm.ZigbeeMsg.create({
+      type: matrix_io.malos.v1.comm.ZigBeeMsg.ZigBeeCmdType.ZCL,
+      zcl_cmd: matrix_io.malos.v1.comm.ZigBeeMsg.ZCLCmd.create({ 
+        type: matrix_io.malos.v1.comm.ZigBeeMsg.ZCLCmd.OnOffCmd.ZCLCmdType.ON_OFF,
+        onoff_cmd: matrix_io.malos.v1.comm.ZigBeeMsg.ZCLCmd.OnOffCmd.create({
+          type: matrix_io.malos.v1.comm.ZigBeeMsg.ZCLCmd.OnOffCmd.ZCLOnOffCmdType.TOGGLE
+        })
+      })
+    }) 
+  });
 
   setInterval(function() {
     for (var i = 0; i < nodes_id.length; i++) {
       process.stdout.write('Sending toggle to Node: ')
-          process.stdout.write(nodes_id[i] + "\n")
-              config.zigbee_message.zcl_cmd.set_node_id(nodes_id[i]);
-      config.zigbee_message.zcl_cmd.set_endpoint_index(endpoints_index[i]);
-      configSocket.send(config.encode().toBuffer());
+      process.stdout.write(nodes_id[i] + "\n")
+      on_off_msg.zigbee_message.zcl_cmd.set_node_id(nodes_id[i]);  // yoel: Can I still do this set_xxxx ??
+      on_off_msg.zigbee_message.zcl_cmd.set_endpoint_index(endpoints_index[i]); // yoel: Can I still do this set_xxxx ??
+      configSocket.send(matrix_io.malos.v1.driver.DriverConfig.encode(on_off_msg).finish());
     }
   }, 2000);
 }
+
+// ----- Create the socket for sending data to the ZigBee driver ---- OK
+
+var configSocket = zmq.socket('push');
+configSocket.connect('tcp://' + creator_ip + ':' + create_zigbee_base_port);
+
+// ----------------    Start configuration --------------------- OK
+
+var init_config = matrix_io.malos.v1.driver.DriverConfig.create({
+  delayBetweenUpdates: 1.0,  // 1 seconds between updates.
+  timeoutAfterLastPing: 6.0 // Stop sending updates 6 seconds after pings.
+});
+configSocket.send(matrix_io.malos.v1.driver.DriverConfig.encode(init_config).finish());
+
+// ------------ Reseting the Gateway App ----------------------- OK
+
+console.log('Reseting the Gateway App');
+
+var reset_msg = matrix_io.malos.v1.driver.DriverConfig.create({
+  zigbeeMessage: matrix_io.malos.v1.comm.ZigbeeMsg.create({
+    type: matrix_io.malos.v1.comm.ZigBeeMsg.ZigBeeCmdType.NETWORK_MGMT,
+    networkMgmtCmd: matrix_io.malos.v1.comm.ZigBeeMsg.NetworkMrgmtCmd.create({
+      type: matrix_io.malos.v1.comm.ZigBeeMsg.NetworkMgmtCmd.NetworkMgmtCmdTypes.RESET_PROXY
+    }) 
+  }) 
+});
+configSocket.send(matrix_io.malos.v1.driver.DriverConfig.encode(reset_msg).finish());
+
+// ------------ Checking connection with the Gateway ---------------------- OK
+
+console.log('Checking connection with the Gateway');
+var is_proxy_active_msg = matrix_io.malos.v1.driver.DriverConfig.create({
+  zigbeeMessage: matrix_io.malos.v1.comm.ZigbeeMsg.create({
+    type: matrix_io.malos.v1.comm.ZigBeeMsg.ZigBeeCmdType.NETWORK_MGMT,
+    network_mgmt_cmd: matrix_io.malos.v1.comm.ZigBeeMsg.NetworkMrgmtCmd.create({
+      type: matrix_io.malos.v1.comm.ZigBeeMsg.NetworkMgmtCmd.NetworkMgmtCmdTypes.IS_PROXY_ACTIVE
+    }) 
+  }) 
+});
+configSocket.send(matrix_io.malos.v1.driver.DriverConfig.encode(is_proxy_active_msg).finish());
+
+
