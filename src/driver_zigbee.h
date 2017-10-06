@@ -21,11 +21,11 @@
 #include <memory>
 
 #include <matrix_malos/malos_base.h>
+#include <matrix_io/malos/v1/comm.pb.h>
 #include "./tcp_client.h"
-#include "./src/driver.pb.h"
 
 const char kZigbeeDriverName[] = "Zigbee";
-
+namespace pb = matrix_io::malos::v1;
 namespace matrix_malos {
 
 // FIXME: inherit from malos_base.h
@@ -39,7 +39,7 @@ class ZigbeeDriver : public MalosBase {
   }
 
   // Read configuration of LEDs (from the outside world).
-  bool ProcessConfig(const DriverConfig& config) override;
+  bool ProcessConfig(const pb::driver::DriverConfig& config) override;
 
   // Send updates. Checks for new messages from Zigbee.
   bool SendUpdate() override;
@@ -54,7 +54,7 @@ class ZigbeeDriver : public MalosBase {
   // signal that we are receiving the discovery data
   bool bulding_discovery_result = false;
   // zigbee message used to store data comming from ZigbeeGateway
-  ZigBeeMsg zigbee_msg;
+  pb::comm::ZigBeeMsg zigbee_msg;
 };
 
 }  // namespace matrix_malos

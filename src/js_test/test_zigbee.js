@@ -13,8 +13,13 @@
 
 var creator_ip = '127.0.0.1';
 var create_zigbee_base_port = 40000 + 1;
-var protoBuf = require("protobufjs");
+
 var zmq = require('zmq');
+
+
+// Import MATRIX Proto messages
+var matrix_io = require('matrix-protos').matrix_io
+
 
 var zigbee_network_up = false;
 var gateway_up = false;
@@ -30,12 +35,22 @@ var nodes_discovered = 3;
 var nodes_id = [];
 var endpoints_index = [];
 
-var protoBuilder =
-    protoBuf.loadProtoFile('../../protocol-buffers/malos/driver.proto');
-var matrixMalosBuilder = protoBuilder.build("matrix_malos");
-
 // ------------------------- ZigBee --------------------------
-var config = new matrixMalosBuilder.DriverConfig;
+var config = matrix_io.malos.v1.driver.DriverConfig.create({
+  zigbeeMessage: matrix_io.malos.v1.comm.ZigbeeMsg.create(
+    type: matrix_io.malos.v1.comm.ZigBeeMsg.ZigBeeCmdType.NETWORK_MGMT,
+    zclCmd: matrix_io.malos.v1.comm.ZigBeeMsg.ZCLCmd.create({ 
+      onOffCmd: matrix_io.malos.v1.comm.ZigBeeMsg.ZCLCmd.OnOffCmd.create({
+	type: matrix_io.malos.v1.comm.ZigBeeMsg.ZCLCmd.OnOffCmd.ZCLOnOffCmdType.ON
+      })
+      colorControl: matrix_io.malos.v1.comm.ZigBeeMsg.ZCLCmd.create({
+        type: matrix_io.malos.v1.comm.ZigBeeMsg.ZCLCmd.
+      })
+    }),
+    networkMgmtCmd: matrix_io.malos.v1.comm.ZigBeeMsg.NetworkMrgmtCmd.create({
+     }) 
+  }) 
+});
 
 //-----  Print the errors that the ZigBee driver sends ------------
 var errorSocket = zmq.socket('sub');

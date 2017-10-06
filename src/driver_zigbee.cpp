@@ -18,10 +18,10 @@
 #include <chrono>
 #include <thread>
 #include <iostream>
-
+#include <matrix_io/malos/v1/comm.pb.h>
 #include "./driver_zigbee.h"
 
-#include "./src/driver.pb.h"
+namespace pb = matrix_io::malos::v1;
 
 namespace {
 
@@ -40,34 +40,34 @@ std::string Trim(const std::string& s) {
 
 namespace matrix_malos {
 
-bool ZigbeeDriver::ProcessConfig(const DriverConfig& config) {
+bool ZigbeeDriver::ProcessConfig(const pb::driver::DriverConfig& config) {
   // TODO: Validate all the data that comes from the protos
-  ZigBeeMsg zigbee_msg(config.zigbee_message());
+  pb::comm::ZigBeeMsg zigbee_msg(config.zigbee_message());
 
   std::string command;
   bool command_error = false;
 
-  if (zigbee_msg.type() == ZigBeeMsg::ZCL) {
+  if (zigbee_msg.type() == pb::comm::ZigBeeMsg::ZCL) {
     command = "zcl ";
 
-    if (zigbee_msg.zcl_cmd().type() == ZigBeeMsg::ZCLCmd::ON_OFF) {
+    if (zigbee_msg.zcl_cmd().type() == pb::comm::ZigBeeMsg::ZCLCmd::ON_OFF) {
       command += "on-off ";
       if (zigbee_msg.zcl_cmd().onoff_cmd().type() ==
-          ZigBeeMsg::ZCLCmd::OnOffCmd::ON) {
+          pb::comm::ZigBeeMsg::ZCLCmd::OnOffCmd::ON) {
         command += " on";
       } else if (zigbee_msg.zcl_cmd().onoff_cmd().type() ==
-                 ZigBeeMsg::ZCLCmd::OnOffCmd::OFF) {
+                 pb::comm::ZigBeeMsg::ZCLCmd::OnOffCmd::OFF) {
         command += " off";
       } else if (zigbee_msg.zcl_cmd().onoff_cmd().type() ==
-                 ZigBeeMsg::ZCLCmd::OnOffCmd::TOGGLE) {
+                 pb::comm::ZigBeeMsg::ZCLCmd::OnOffCmd::TOGGLE) {
         command += " toggle";
       } else {
         command_error = true;
       }
-    } else if (zigbee_msg.zcl_cmd().type() == ZigBeeMsg::ZCLCmd::LEVEL) {
+    } else if (zigbee_msg.zcl_cmd().type() == pb::comm::ZigBeeMsg::ZCLCmd::LEVEL) {
       command += "level-control ";
       if (zigbee_msg.zcl_cmd().level_cmd().type() ==
-          ZigBeeMsg::ZCLCmd::LevelCmd::MOVE_TO_LEVEL) {
+          pb::comm::ZigBeeMsg::ZCLCmd::LevelCmd::MOVE_TO_LEVEL) {
         char buf[128];
         std::snprintf(
             buf, sizeof buf, "mv-to-level 0x%02X 0x%04X",
@@ -78,7 +78,7 @@ bool ZigbeeDriver::ProcessConfig(const DriverConfig& config) {
                 .transition_time());
         command += buf;
       } else if (zigbee_msg.zcl_cmd().level_cmd().type() ==
-                 ZigBeeMsg::ZCLCmd::LevelCmd::MOVE) {
+                 pb::comm::ZigBeeMsg::ZCLCmd::LevelCmd::MOVE) {
         char buf[128];
         std::snprintf(buf, sizeof buf, "move 0x%02X 0x%02X",
                       zigbee_msg.zcl_cmd().level_cmd().move_params().mode(),
@@ -88,10 +88,10 @@ bool ZigbeeDriver::ProcessConfig(const DriverConfig& config) {
         command_error = true;
       }
     } else if (zigbee_msg.zcl_cmd().type() ==
-               ZigBeeMsg::ZCLCmd::COLOR_CONTROL) {
+               pb::comm::ZigBeeMsg::ZCLCmd::COLOR_CONTROL) {
       command += "color-control ";
       if (zigbee_msg.zcl_cmd().colorcontrol_cmd().type() ==
-          ZigBeeMsg::ZCLCmd::ColorControlCmd::MOVETOHUE) {
+          pb::comm::ZigBeeMsg::ZCLCmd::ColorControlCmd::MOVETOHUE) {
         char buf[128];
         std::snprintf(
             buf, sizeof buf, "movetohue 0x%02X 0x%02X 0x%04X",
@@ -106,7 +106,7 @@ bool ZigbeeDriver::ProcessConfig(const DriverConfig& config) {
                 .transition_time());
         command += buf;
       } else if (zigbee_msg.zcl_cmd().colorcontrol_cmd().type() ==
-                 ZigBeeMsg::ZCLCmd::ColorControlCmd::MOVETOSAT) {
+                 pb::comm::ZigBeeMsg::ZCLCmd::ColorControlCmd::MOVETOSAT) {
         char buf[128];
         std::snprintf(buf, sizeof buf, "movetosat 0x%02X 0x%04X",
                       zigbee_msg.zcl_cmd()
@@ -119,7 +119,7 @@ bool ZigbeeDriver::ProcessConfig(const DriverConfig& config) {
                           .transition_time());
         command += buf;
       } else if (zigbee_msg.zcl_cmd().colorcontrol_cmd().type() ==
-                 ZigBeeMsg::ZCLCmd::ColorControlCmd::MOVETOHUEANDSAT) {
+                 pb::comm::ZigBeeMsg::ZCLCmd::ColorControlCmd::MOVETOHUEANDSAT) {
         char buf[128];
         std::snprintf(buf, sizeof buf, "movetohueandsat 0x%02X 0x%02X 0x%04X",
                       zigbee_msg.zcl_cmd()
@@ -138,10 +138,10 @@ bool ZigbeeDriver::ProcessConfig(const DriverConfig& config) {
       } else {
         command_error = true;
       }
-    } else if (zigbee_msg.zcl_cmd().type() == ZigBeeMsg::ZCLCmd::IDENTIFY) {
+    } else if (zigbee_msg.zcl_cmd().type() == pb::comm::ZigBeeMsg::ZCLCmd::IDENTIFY) {
       command += "identify ";
       if (zigbee_msg.zcl_cmd().identify_cmd().type() ==
-          ZigBeeMsg::ZCLCmd::IdentifyCmd::IDENTIFY_ON) {
+          pb::comm::ZigBeeMsg::ZCLCmd::IdentifyCmd::IDENTIFY_ON) {
         char buf[128];
         std::snprintf(
             buf, sizeof buf, "on 0x%02X 0x%04X",
@@ -152,7 +152,7 @@ bool ZigbeeDriver::ProcessConfig(const DriverConfig& config) {
                 .identify_time());
         command += buf;
       } else if (zigbee_msg.zcl_cmd().identify_cmd().type() ==
-                 ZigBeeMsg::ZCLCmd::IdentifyCmd::IDENTIFY_OFF) {
+                 pb::comm::ZigBeeMsg::ZCLCmd::IdentifyCmd::IDENTIFY_OFF) {
         char buf[128];
         std::snprintf(buf, sizeof buf, "off 0x%04X", zigbee_msg.zcl_cmd()
                                                          .identify_cmd()
@@ -179,37 +179,37 @@ bool ZigbeeDriver::ProcessConfig(const DriverConfig& config) {
       command = buf;
       tcp_client_->Send(command);
     }
-  } else if (zigbee_msg.type() == ZigBeeMsg::NETWORK_MGMT) {
+  } else if (zigbee_msg.type() == pb::comm::ZigBeeMsg::NETWORK_MGMT) {
     if (zigbee_msg.network_mgmt_cmd().type() ==
-        ZigBeeMsg::NetworkMgmtCmd::CREATE_NWK) {
+        pb::comm::ZigBeeMsg::NetworkMgmtCmd::CREATE_NWK) {
       command = "network find unused";
     } else if (zigbee_msg.network_mgmt_cmd().type() ==
-               ZigBeeMsg::NetworkMgmtCmd::LEAVE_NWK) {
+               pb::comm::ZigBeeMsg::NetworkMgmtCmd::LEAVE_NWK) {
       command = "network leave";
     } else if (zigbee_msg.network_mgmt_cmd().type() ==
-               ZigBeeMsg::NetworkMgmtCmd::NODE_LEAVE_NWK) {
+               pb::comm::ZigBeeMsg::NetworkMgmtCmd::NODE_LEAVE_NWK) {
       char buf[128];
       std::snprintf(
           buf, sizeof buf, "zdo leave  0x%04X 0 0",
           zigbee_msg.network_mgmt_cmd().node_leave_params().node_id());
       command = buf;
     } else if (zigbee_msg.network_mgmt_cmd().type() ==
-               ZigBeeMsg::NetworkMgmtCmd::PERMIT_JOIN) {
+               pb::comm::ZigBeeMsg::NetworkMgmtCmd::PERMIT_JOIN) {
       char buf[128];
       std::snprintf(buf, sizeof buf, "network pjoin %d",
                     zigbee_msg.network_mgmt_cmd().permit_join_params().time());
       command = buf;
     } else if (zigbee_msg.network_mgmt_cmd().type() ==
-               ZigBeeMsg::NetworkMgmtCmd::DISCOVERY_INFO) {
+               pb::comm::ZigBeeMsg::NetworkMgmtCmd::DISCOVERY_INFO) {
       command = "plugin device-database print-all";
     } else if (zigbee_msg.network_mgmt_cmd().type() ==
-               ZigBeeMsg::NetworkMgmtCmd::RESET_PROXY) {
+               pb::comm::ZigBeeMsg::NetworkMgmtCmd::RESET_PROXY) {
       // Kill the ZigBeeGateway app
       system("sudo pkill ZigBeeGateway");
 
       // Starting the app
       system(
-          "sudo /usr/share/admobilize/matrix-creator/blob/ZigBeeGateway -n 1 "
+          "/usr/share/admobilize/matrix-creator/blob/ZigBeeGateway -n 1 "
           "-p ttyS0 -v &");
 
       tcp_client_.reset(new TcpClient());
@@ -234,7 +234,7 @@ bool ZigbeeDriver::ProcessConfig(const DriverConfig& config) {
       std::cerr.flush();
 
     } else if (zigbee_msg.network_mgmt_cmd().type() ==
-               ZigBeeMsg::NetworkMgmtCmd::IS_PROXY_ACTIVE) {
+               pb::comm::ZigBeeMsg::NetworkMgmtCmd::IS_PROXY_ACTIVE) {
       if (tcp_client_->GetErrorMessage().compare("Connected") == 0) {
         zigbee_msg.mutable_network_mgmt_cmd()->set_is_proxy_active(true);
       } else {
@@ -247,7 +247,7 @@ bool ZigbeeDriver::ProcessConfig(const DriverConfig& config) {
 
       return true;
     } else if (zigbee_msg.network_mgmt_cmd().type() ==
-               ZigBeeMsg::NetworkMgmtCmd::NETWORK_STATUS) {
+               pb::comm::ZigBeeMsg::NetworkMgmtCmd::NETWORK_STATUS) {
       command = "info";
     }
 
@@ -282,36 +282,36 @@ bool ZigbeeDriver::SendUpdate() {
         return false;
       }
 
-      zigbee_msg.set_type(ZigBeeMsg::NETWORK_MGMT);
+      zigbee_msg.set_type(pb::comm::ZigBeeMsg::NETWORK_MGMT);
       zigbee_msg.mutable_network_mgmt_cmd()->set_type(
-          ZigBeeMsg::NetworkMgmtCmd::NETWORK_STATUS);
+          pb::comm::ZigBeeMsg::NetworkMgmtCmd::NETWORK_STATUS);
 
       switch (network_type) {
         // NO_NETWORK
         case 0:
           zigbee_msg.mutable_network_mgmt_cmd()
               ->mutable_network_status()
-              ->set_type(ZigBeeMsg::NetworkMgmtCmd::NetworkStatus::NO_NETWORK);
+              ->set_type(pb::comm::ZigBeeMsg::NetworkMgmtCmd::NetworkStatus::NO_NETWORK);
           break;
         // JOINING_NETWORK
         case 1:
           zigbee_msg.mutable_network_mgmt_cmd()
               ->mutable_network_status()
               ->set_type(
-                  ZigBeeMsg::NetworkMgmtCmd::NetworkStatus::JOINING_NETWORK);
+                  pb::comm::ZigBeeMsg::NetworkMgmtCmd::NetworkStatus::JOINING_NETWORK);
           break;
         // JOINED_NETWORK
         case 2:
           zigbee_msg.mutable_network_mgmt_cmd()
               ->mutable_network_status()
               ->set_type(
-                  ZigBeeMsg::NetworkMgmtCmd::NetworkStatus::JOINED_NETWORK);
+                  pb::comm::ZigBeeMsg::NetworkMgmtCmd::NetworkStatus::JOINED_NETWORK);
           break;
         // JOINED_NETWORK_NO_PARENT
         case 3:
           zigbee_msg.mutable_network_mgmt_cmd()
               ->mutable_network_status()
-              ->set_type(ZigBeeMsg::NetworkMgmtCmd::NetworkStatus::
+              ->set_type(pb::comm::ZigBeeMsg::NetworkMgmtCmd::NetworkStatus::
                              JOINED_NETWORK_NO_PARENT);
           break;
         // LEAVING_NETWORK
@@ -319,7 +319,7 @@ bool ZigbeeDriver::SendUpdate() {
           zigbee_msg.mutable_network_mgmt_cmd()
               ->mutable_network_status()
               ->set_type(
-                  ZigBeeMsg::NetworkMgmtCmd::NetworkStatus::LEAVING_NETWORK);
+                  pb::comm::ZigBeeMsg::NetworkMgmtCmd::NetworkStatus::LEAVING_NETWORK);
           break;
         default:
           std::cerr << "Not valid value from ZigBeeGateway" << std::endl;
@@ -351,9 +351,9 @@ bool ZigbeeDriver::SendUpdate() {
     if (found != std::string::npos) {
       bulding_discovery_result = true;
 
-      zigbee_msg.set_type(ZigBeeMsg::NETWORK_MGMT);
+      zigbee_msg.set_type(pb::comm::ZigBeeMsg::NETWORK_MGMT);
       zigbee_msg.mutable_network_mgmt_cmd()->set_type(
-          ZigBeeMsg::NetworkMgmtCmd::DISCOVERY_INFO);
+          pb::comm::ZigBeeMsg::NetworkMgmtCmd::DISCOVERY_INFO);
       zigbee_msg.mutable_network_mgmt_cmd()->clear_connected_nodes();
 
       continue;
@@ -380,7 +380,7 @@ bool ZigbeeDriver::SendUpdate() {
         continue;
       }
 
-      ZigBeeMsg::NetworkMgmtCmd::NodeDescription* last_node;
+      pb::comm::ZigBeeMsg::NetworkMgmtCmd::NodeDescription* last_node;
       const int nodes_size =
           zigbee_msg.mutable_network_mgmt_cmd()->connected_nodes_size();
       if (nodes_size > 0) {
@@ -419,7 +419,7 @@ bool ZigbeeDriver::SendUpdate() {
       const char endpoint_line[] = "EP";
       found = line.find(endpoint_line);
       if (found != std::string::npos) {
-        ZigBeeMsg::NetworkMgmtCmd::EndPointDescription* new_endpoint =
+        pb::comm::ZigBeeMsg::NetworkMgmtCmd::EndPointDescription* new_endpoint =
             last_node->add_endpoints();
 
         try {
@@ -436,7 +436,7 @@ bool ZigbeeDriver::SendUpdate() {
         continue;
       }
 
-      ZigBeeMsg::NetworkMgmtCmd::EndPointDescription* last_endpoint;
+      pb::comm::ZigBeeMsg::NetworkMgmtCmd::EndPointDescription* last_endpoint;
       const int endpoints_size = last_node->endpoints_size();
       if (endpoints_size > 0) {
         last_endpoint = last_node->mutable_endpoints(endpoints_size - 1);
@@ -479,7 +479,7 @@ bool ZigbeeDriver::SendUpdate() {
       const char cluster_line[] = "Cluster:";
       found = line.find(cluster_line);
       if (found != std::string::npos) {
-        ZigBeeMsg::NetworkMgmtCmd::ClusterDescription* last_cluster =
+        pb::comm::ZigBeeMsg::NetworkMgmtCmd::ClusterDescription* last_cluster =
             last_endpoint->add_clusters();
 
         try {
@@ -495,10 +495,10 @@ bool ZigbeeDriver::SendUpdate() {
         found = line.find("Server");
         if (found == std::string::npos) {
           last_cluster->set_type(
-              ZigBeeMsg::NetworkMgmtCmd::ClusterDescription::CLIENT_OUT);
+              pb::comm::ZigBeeMsg::NetworkMgmtCmd::ClusterDescription::CLIENT_OUT);
         } else {
           last_cluster->set_type(
-              ZigBeeMsg::NetworkMgmtCmd::ClusterDescription::SERVER_IN);
+              pb::comm::ZigBeeMsg::NetworkMgmtCmd::ClusterDescription::SERVER_IN);
         }
 
         continue;
