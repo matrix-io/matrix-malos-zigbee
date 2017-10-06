@@ -153,10 +153,15 @@ subSocket.on('message', function(buffer) {
           process.exit(1);
         }
         console.log('Requesting ZigBee Network Status');
-        config.zigbee_message.network_mgmt_cmd
-            .set_type(matrixMalosBuilder.ZigBeeMsg.NetworkMgmtCmd
-                          .NetworkMgmtCmdTypes.NETWORK_STATUS)
-                configSocket.send(config.encode().toBuffer());
+        var status_msg = matrix_io.malos.v1.driver.DriverConfig.create({
+          zigbeeMessage: matrix_io.malos.v1.comm.ZigbeeMsg.create({
+            type: matrix_io.malos.v1.comm.ZigBeeMsg.ZigBeeCmdType.NETWORK_MGMT,
+            networkMgmtCmd: matrix_io.malos.v1.comm.ZigBeeMsg.NetworkMrgmtCmd.create({
+              type: matrix_io.malos.v1.comm.ZigBeeMsg.NetworkMgmtCmd.NetworkMgmtCmdTypes.NETWORK_STATUS
+            }) 
+          }) 
+        });
+        configSocket.send(matrix_io.malos.v1.driver.DriverConfig.encode(status_msg).finish());
         status = waiting_for_network_status;
         break;
       case matrixMalosBuilder.ZigBeeMsg.NetworkMgmtCmd.NetworkMgmtCmdTypes
@@ -175,10 +180,16 @@ subSocket.on('message', function(buffer) {
               .NO_NETWORK:
             console.log('NO_NETWORK');
             console.log('Creating a ZigBee Network');
-            config.zigbee_message.network_mgmt_cmd
-                .set_type(matrixMalosBuilder.ZigBeeMsg.NetworkMgmtCmd
-                              .NetworkMgmtCmdTypes.CREATE_NWK)
-                    configSocket.send(config.encode().toBuffer());
+
+            var create_nwk_msg = matrix_io.malos.v1.driver.DriverConfig.create({
+              zigbeeMessage: matrix_io.malos.v1.comm.ZigbeeMsg.create({
+                type: matrix_io.malos.v1.comm.ZigBeeMsg.ZigBeeCmdType.NETWORK_MGMT,
+                networkMgmtCmd: matrix_io.malos.v1.comm.ZigBeeMsg.NetworkMrgmtCmd.create({
+                  type: matrix_io.malos.v1.comm.ZigBeeMsg.NetworkMgmtCmd.NetworkMgmtCmdTypes.CREATE_NWK
+                }) 
+              }) 
+            });
+            configSocket.send(matrix_io.malos.v1.driver.DriverConfig.encode(create_nwk_msg).finish());
             status = waiting_for_network_status;
             break;
           case matrixMalosBuilder.ZigBeeMsg.NetworkMgmtCmd.NetworkStatus.Status
@@ -193,13 +204,18 @@ subSocket.on('message', function(buffer) {
                     .PERMIT_JOIN);
 
             // Send a permit join commnad
-            var permit_join_params = new matrixMalosBuilder.ZigBeeMsg
-                                         .NetworkMgmtCmd.PermitJoinParams;
-            permit_join_params.setTime(60);
-            config.zigbee_message.network_mgmt_cmd.set_permit_join_params(
-                permit_join_params);
-
-            configSocket.send(config.encode().toBuffer());
+            var permit_join_msg = matrix_io.malos.v1.driver.DriverConfig.create({
+              zigbeeMessage: matrix_io.malos.v1.comm.ZigbeeMsg.create({
+                type: matrix_io.malos.v1.comm.ZigBeeMsg.ZigBeeCmdType.NETWORK_MGMT,
+                networkMgmtCmd: matrix_io.malos.v1.comm.ZigBeeMsg.NetworkMrgmtCmd.create({
+                  type: matrix_io.malos.v1.comm.ZigBeeMsg.NetworkMgmtCmd.NetworkMgmtCmdTypes.PERMIT_JOIN
+                  permit_join_params: matrix_io.malos.v1.comm.ZigBeeMsg.NetworkMgmtCmd.PermitJoinParams({
+                    time = 60
+                  })
+                }) 
+              }) 
+            });
+            configSocket.send(matrix_io.malos.v1.driver.DriverConfig.encode(permit_join_msg).finish());
 
             console.log('Please reset your zigbee devices');
             console.log('... Waiting 60 sec for new devices');
@@ -243,8 +259,8 @@ function ToggleNodes() {
     for (var i = 0; i < nodes_id.length; i++) {
       process.stdout.write('Sending toggle to Node: ')
       process.stdout.write(nodes_id[i] + "\n")
-      on_off_msg.zigbee_message.zcl_cmd.set_node_id(nodes_id[i]);  // yoel: Can I still do this set_xxxx ??
-      on_off_msg.zigbee_message.zcl_cmd.set_endpoint_index(endpoints_index[i]); // yoel: Can I still do this set_xxxx ??
+      on_off_msg.zigbee_message.zcl_cmd.set_node_id(nodes_id[i]);  // TODO (yoel.castillo): Can I still do this set_xxxx ??
+      on_off_msg.zigbee_message.zcl_cmd.set_endpoint_index(endpoints_index[i]); // TODO (yoel.castillo) : Can I still do this set_xxxx ??
       configSocket.send(matrix_io.malos.v1.driver.DriverConfig.encode(on_off_msg).finish());
     }
   }, 2000);
