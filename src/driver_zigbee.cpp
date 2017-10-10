@@ -220,7 +220,10 @@ bool ZigbeeDriver::ProcessConfig(const pb::driver::DriverConfig& config) {
       // Wait a little bit for the ZigbeeGateway to start
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
-      if (tcp_client_->Connect(gateway_ip, gateway_port)) {
+      gateway_connection_status =
+          tcp_client_->Connect(gateway_ip, gateway_port);
+      
+      if (gateway_connection_status) {
         std::cerr << "Connected to the Gateway" << std::endl;
         zmq_push_error_->Send("Connected to the Gateway");
         return true;
@@ -235,11 +238,8 @@ bool ZigbeeDriver::ProcessConfig(const pb::driver::DriverConfig& config) {
 
     } else if (zigbee_msg.network_mgmt_cmd().type() ==
                pb::comm::ZigBeeMsg::NetworkMgmtCmd::IS_PROXY_ACTIVE) {
-      if (tcp_client_->GetErrorMessage().compare("Connected") == 0) {
-        zigbee_msg.mutable_network_mgmt_cmd()->set_is_proxy_active(true);
-      } else {
-        zigbee_msg.mutable_network_mgmt_cmd()->set_is_proxy_active(false);
-      }
+      zigbee_msg.mutable_network_mgmt_cmd()->set_is_proxy_active(
+          gateway_connection_status);
 
       std::string buffer;
       zigbee_msg.SerializeToString(&buffer);

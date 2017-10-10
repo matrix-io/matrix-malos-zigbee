@@ -53,6 +53,8 @@ class ZigbeeDriver : public MalosBase {
   const int gateway_port = 4901;
   // signal that we are receiving the discovery data
   bool bulding_discovery_result = false;
+  // Status of TCP connection with the gateway
+  bool gateway_connection_status = false;
   // zigbee message used to store data comming from ZigbeeGateway
   pb::comm::ZigBeeMsg zigbee_msg;
 };
