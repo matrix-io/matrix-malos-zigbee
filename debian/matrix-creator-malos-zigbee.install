@@ -1,1 +1,1 @@
-matrix-creator-malos-zigbee.service lib/systemd/system
+matrixio-creator-malos-zigbee.service lib/systemd/system
