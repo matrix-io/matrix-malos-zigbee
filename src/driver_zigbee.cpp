@@ -15,11 +15,11 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <chrono>
-#include <thread>
-#include <iostream>
-#include <matrix_io/malos/v1/comm.pb.h>
 #include "./driver_zigbee.h"
+#include <matrix_io/malos/v1/comm.pb.h>
+#include <chrono>
+#include <iostream>
+#include <thread>
 
 namespace pb = matrix_io::malos::v1;
 
@@ -64,7 +64,8 @@ bool ZigbeeDriver::ProcessConfig(const pb::driver::DriverConfig& config) {
       } else {
         command_error = true;
       }
-    } else if (zigbee_msg.zcl_cmd().type() == pb::comm::ZigBeeMsg::ZCLCmd::LEVEL) {
+    } else if (zigbee_msg.zcl_cmd().type() ==
+               pb::comm::ZigBeeMsg::ZCLCmd::LEVEL) {
       command += "level-control ";
       if (zigbee_msg.zcl_cmd().level_cmd().type() ==
           pb::comm::ZigBeeMsg::ZCLCmd::LevelCmd::MOVE_TO_LEVEL) {
@@ -119,7 +120,8 @@ bool ZigbeeDriver::ProcessConfig(const pb::driver::DriverConfig& config) {
                           .transition_time());
         command += buf;
       } else if (zigbee_msg.zcl_cmd().colorcontrol_cmd().type() ==
-                 pb::comm::ZigBeeMsg::ZCLCmd::ColorControlCmd::MOVETOHUEANDSAT) {
+                 pb::comm::ZigBeeMsg::ZCLCmd::ColorControlCmd::
+                     MOVETOHUEANDSAT) {
         char buf[128];
         std::snprintf(buf, sizeof buf, "movetohueandsat 0x%02X 0x%02X 0x%04X",
                       zigbee_msg.zcl_cmd()
@@ -138,7 +140,8 @@ bool ZigbeeDriver::ProcessConfig(const pb::driver::DriverConfig& config) {
       } else {
         command_error = true;
       }
-    } else if (zigbee_msg.zcl_cmd().type() == pb::comm::ZigBeeMsg::ZCLCmd::IDENTIFY) {
+    } else if (zigbee_msg.zcl_cmd().type() ==
+               pb::comm::ZigBeeMsg::ZCLCmd::IDENTIFY) {
       command += "identify ";
       if (zigbee_msg.zcl_cmd().identify_cmd().type() ==
           pb::comm::ZigBeeMsg::ZCLCmd::IdentifyCmd::IDENTIFY_ON) {
@@ -205,7 +208,7 @@ bool ZigbeeDriver::ProcessConfig(const pb::driver::DriverConfig& config) {
     } else if (zigbee_msg.network_mgmt_cmd().type() ==
                pb::comm::ZigBeeMsg::NetworkMgmtCmd::RESET_PROXY) {
       // Kill the ZigBeeGateway app
-      system("sudo pkill ZigBeeGateway");
+      system("pkill ZigBeeGateway");
 
       // Starting the app
       system(
@@ -220,7 +223,10 @@ bool ZigbeeDriver::ProcessConfig(const pb::driver::DriverConfig& config) {
       // Wait a little bit for the ZigbeeGateway to start
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
-      if (tcp_client_->Connect(gateway_ip, gateway_port)) {
+      gateway_connection_status =
+          tcp_client_->Connect(gateway_ip, gateway_port);
+
+      if (gateway_connection_status) {
         std::cerr << "Connected to the Gateway" << std::endl;
         zmq_push_error_->Send("Connected to the Gateway");
         return true;
@@ -235,11 +241,8 @@ bool ZigbeeDriver::ProcessConfig(const pb::driver::DriverConfig& config) {
 
     } else if (zigbee_msg.network_mgmt_cmd().type() ==
                pb::comm::ZigBeeMsg::NetworkMgmtCmd::IS_PROXY_ACTIVE) {
-      if (tcp_client_->GetErrorMessage().compare("Connected") == 0) {
-        zigbee_msg.mutable_network_mgmt_cmd()->set_is_proxy_active(true);
-      } else {
-        zigbee_msg.mutable_network_mgmt_cmd()->set_is_proxy_active(false);
-      }
+      zigbee_msg.mutable_network_mgmt_cmd()->set_is_proxy_active(
+          gateway_connection_status);
 
       std::string buffer;
       zigbee_msg.SerializeToString(&buffer);
@@ -266,242 +269,246 @@ bool ZigbeeDriver::ProcessConfig(const pb::driver::DriverConfig& config) {
 bool ZigbeeDriver::SendUpdate() {
   std::string line;
 
-  while (tcp_client_->GetLine(&line)) {
-    line = Trim(line);
-    const char network_state_line[] = "network state";
-    std::size_t found = line.find(network_state_line);
+  if (tcp_client_.get() != nullptr) {
+    while (tcp_client_->GetLine(&line)) {
+      line = Trim(line);
+      const char network_state_line[] = "network state";
+      std::size_t found = line.find(network_state_line);
 
-    if (found != std::string::npos) {
-      int network_type;
-      try {
-        network_type =
-            stoi(line.substr(found + sizeof network_state_line + 1, 2), 0, 10);
-      } catch (...) {
-        std::cerr << "Not valid value from ZigBeeGateway" << std::endl;
-        zmq_push_error_->Send("Not valid value from ZigBeeGateway");
-        return false;
-      }
-
-      zigbee_msg.set_type(pb::comm::ZigBeeMsg::NETWORK_MGMT);
-      zigbee_msg.mutable_network_mgmt_cmd()->set_type(
-          pb::comm::ZigBeeMsg::NetworkMgmtCmd::NETWORK_STATUS);
-
-      switch (network_type) {
-        // NO_NETWORK
-        case 0:
-          zigbee_msg.mutable_network_mgmt_cmd()
-              ->mutable_network_status()
-              ->set_type(pb::comm::ZigBeeMsg::NetworkMgmtCmd::NetworkStatus::NO_NETWORK);
-          break;
-        // JOINING_NETWORK
-        case 1:
-          zigbee_msg.mutable_network_mgmt_cmd()
-              ->mutable_network_status()
-              ->set_type(
-                  pb::comm::ZigBeeMsg::NetworkMgmtCmd::NetworkStatus::JOINING_NETWORK);
-          break;
-        // JOINED_NETWORK
-        case 2:
-          zigbee_msg.mutable_network_mgmt_cmd()
-              ->mutable_network_status()
-              ->set_type(
-                  pb::comm::ZigBeeMsg::NetworkMgmtCmd::NetworkStatus::JOINED_NETWORK);
-          break;
-        // JOINED_NETWORK_NO_PARENT
-        case 3:
-          zigbee_msg.mutable_network_mgmt_cmd()
-              ->mutable_network_status()
-              ->set_type(pb::comm::ZigBeeMsg::NetworkMgmtCmd::NetworkStatus::
-                             JOINED_NETWORK_NO_PARENT);
-          break;
-        // LEAVING_NETWORK
-        case 4:
-          zigbee_msg.mutable_network_mgmt_cmd()
-              ->mutable_network_status()
-              ->set_type(
-                  pb::comm::ZigBeeMsg::NetworkMgmtCmd::NetworkStatus::LEAVING_NETWORK);
-          break;
-        default:
-          std::cerr << "Not valid value from ZigBeeGateway" << std::endl;
-          zmq_push_error_->Send("Not valid value from ZigBeeGateway");
-          return false;
-          break;
-      }
-      // Send the serialized proto.
-      std::string buffer;
-      zigbee_msg.SerializeToString(&buffer);
-      zqm_push_update_->Send(buffer);
-
-      continue;
-    }
-
-    // Detect EMBER_NETWORK_UP & EMBER_NETWORK_DOWN
-    const char network_up_line[] = "EMBER_NETWORK_";
-    found = line.find(network_up_line);
-    if (found != std::string::npos) {
-      if (tcp_client_.get() != nullptr) {
-        tcp_client_->Send("info\n");
-      }
-
-      continue;
-    }
-
-    const char discovery_start_line[] = "Discovery Database";
-    found = line.find(discovery_start_line);
-    if (found != std::string::npos) {
-      bulding_discovery_result = true;
-
-      zigbee_msg.set_type(pb::comm::ZigBeeMsg::NETWORK_MGMT);
-      zigbee_msg.mutable_network_mgmt_cmd()->set_type(
-          pb::comm::ZigBeeMsg::NetworkMgmtCmd::DISCOVERY_INFO);
-      zigbee_msg.mutable_network_mgmt_cmd()->clear_connected_nodes();
-
-      continue;
-    }
-
-    const char discovery_end_line[] = "devices in database";
-    found = line.find(discovery_end_line);
-    if (found != std::string::npos) {
-      bulding_discovery_result = false;
-
-      // Send the serialized proto.
-      std::string buffer;
-      zigbee_msg.SerializeToString(&buffer);
-      zqm_push_update_->Send(buffer);
-
-      continue;
-    }
-
-    if (bulding_discovery_result) {
-      const char node_index_line[] = "Node Index";
-      found = line.find(node_index_line);
       if (found != std::string::npos) {
-        zigbee_msg.mutable_network_mgmt_cmd()->add_connected_nodes();
-        continue;
-      }
-
-      pb::comm::ZigBeeMsg::NetworkMgmtCmd::NodeDescription* last_node;
-      const int nodes_size =
-          zigbee_msg.mutable_network_mgmt_cmd()->connected_nodes_size();
-      if (nodes_size > 0) {
-        last_node =
-            zigbee_msg.mutable_network_mgmt_cmd()->mutable_connected_nodes(
-                nodes_size - 1);
-      } else {
-        continue;
-      }
-
-      const char node_id_line[] = "NodeId";
-      found = line.find(node_id_line);
-      if (found != std::string::npos) {
+        int network_type;
         try {
-          const int node_id =
-              stoi(line.substr(found + sizeof node_id_line + 1, 6), 0, 16);
-          last_node->set_node_id(node_id);
+          network_type = stoi(
+              line.substr(found + sizeof network_state_line + 1, 2), 0, 10);
         } catch (...) {
           std::cerr << "Not valid value from ZigBeeGateway" << std::endl;
           zmq_push_error_->Send("Not valid value from ZigBeeGateway");
           return false;
         }
 
+        zigbee_msg.set_type(pb::comm::ZigBeeMsg::NETWORK_MGMT);
+        zigbee_msg.mutable_network_mgmt_cmd()->set_type(
+            pb::comm::ZigBeeMsg::NetworkMgmtCmd::NETWORK_STATUS);
+
+        switch (network_type) {
+          // NO_NETWORK
+          case 0:
+            zigbee_msg.mutable_network_mgmt_cmd()
+                ->mutable_network_status()
+                ->set_type(pb::comm::ZigBeeMsg::NetworkMgmtCmd::NetworkStatus::
+                               NO_NETWORK);
+            break;
+          // JOINING_NETWORK
+          case 1:
+            zigbee_msg.mutable_network_mgmt_cmd()
+                ->mutable_network_status()
+                ->set_type(pb::comm::ZigBeeMsg::NetworkMgmtCmd::NetworkStatus::
+                               JOINING_NETWORK);
+            break;
+          // JOINED_NETWORK
+          case 2:
+            zigbee_msg.mutable_network_mgmt_cmd()
+                ->mutable_network_status()
+                ->set_type(pb::comm::ZigBeeMsg::NetworkMgmtCmd::NetworkStatus::
+                               JOINED_NETWORK);
+            break;
+          // JOINED_NETWORK_NO_PARENT
+          case 3:
+            zigbee_msg.mutable_network_mgmt_cmd()
+                ->mutable_network_status()
+                ->set_type(pb::comm::ZigBeeMsg::NetworkMgmtCmd::NetworkStatus::
+                               JOINED_NETWORK_NO_PARENT);
+            break;
+          // LEAVING_NETWORK
+          case 4:
+            zigbee_msg.mutable_network_mgmt_cmd()
+                ->mutable_network_status()
+                ->set_type(pb::comm::ZigBeeMsg::NetworkMgmtCmd::NetworkStatus::
+                               LEAVING_NETWORK);
+            break;
+          default:
+            std::cerr << "Not valid value from ZigBeeGateway" << std::endl;
+            zmq_push_error_->Send("Not valid value from ZigBeeGateway");
+            return false;
+            break;
+        }
+        // Send the serialized proto.
+        std::string buffer;
+        zigbee_msg.SerializeToString(&buffer);
+        zqm_push_update_->Send(buffer);
+
         continue;
       }
 
-      const char euid64_line[] = "Eui64";
-      found = line.find(euid64_line);
+      // Detect EMBER_NETWORK_UP & EMBER_NETWORK_DOWN
+      const char network_up_line[] = "EMBER_NETWORK_";
+      found = line.find(network_up_line);
       if (found != std::string::npos) {
-        const unsigned long long euid64 = strtoull(
-            line.substr(found + sizeof euid64_line + 1, 18).c_str(), 0, 16);
-        last_node->set_eui64(euid64);
-        continue;
-      }
-
-      const char endpoint_line[] = "EP";
-      found = line.find(endpoint_line);
-      if (found != std::string::npos) {
-        pb::comm::ZigBeeMsg::NetworkMgmtCmd::EndPointDescription* new_endpoint =
-            last_node->add_endpoints();
-
-        try {
-          const int endpoint_index = stoi(
-              line.substr(found + sizeof endpoint_line + 1, line.length() - 1),
-              0, 10);
-          new_endpoint->set_endpoint_index(endpoint_index);
-        } catch (...) {
-          std::cerr << "Not valid value from ZigBeeGateway" << std::endl;
-          zmq_push_error_->Send("Not valid value from ZigBeeGateway");
-          return false;
+        if (tcp_client_.get() != nullptr) {
+          tcp_client_->Send("info\n");
         }
 
         continue;
       }
 
-      pb::comm::ZigBeeMsg::NetworkMgmtCmd::EndPointDescription* last_endpoint;
-      const int endpoints_size = last_node->endpoints_size();
-      if (endpoints_size > 0) {
-        last_endpoint = last_node->mutable_endpoints(endpoints_size - 1);
-      } else {
-        continue;
-      }
-
-      const char profile_id_line[] = "Profile ID";
-      found = line.find(profile_id_line);
+      const char discovery_start_line[] = "Discovery Database";
+      found = line.find(discovery_start_line);
       if (found != std::string::npos) {
-        try {
-          const int profile_id =
-              stoi(line.substr(found + sizeof profile_id_line + 1, 6), 0, 16);
-          last_endpoint->set_profile_id(profile_id);
-        } catch (...) {
-          std::cerr << "Not valid value from ZigBeeGateway" << std::endl;
-          zmq_push_error_->Send("Not valid value from ZigBeeGateway");
-          return false;
-        }
+        bulding_discovery_result = true;
+
+        zigbee_msg.set_type(pb::comm::ZigBeeMsg::NETWORK_MGMT);
+        zigbee_msg.mutable_network_mgmt_cmd()->set_type(
+            pb::comm::ZigBeeMsg::NetworkMgmtCmd::DISCOVERY_INFO);
+        zigbee_msg.mutable_network_mgmt_cmd()->clear_connected_nodes();
 
         continue;
       }
 
-      const char device_id_line[] = "Device ID";
-      found = line.find(device_id_line);
+      const char discovery_end_line[] = "devices in database";
+      found = line.find(discovery_end_line);
       if (found != std::string::npos) {
-        try {
-          const int device_id =
-              stoi(line.substr(found + sizeof device_id_line + 1, 6), 0, 16);
-          last_endpoint->set_device_id(device_id);
-        } catch (...) {
-          std::cerr << "Not valid value from ZigBeeGateway" << std::endl;
-          zmq_push_error_->Send("Not valid value from ZigBeeGateway");
-          return false;
-        }
+        bulding_discovery_result = false;
+
+        // Send the serialized proto.
+        std::string buffer;
+        zigbee_msg.SerializeToString(&buffer);
+        zqm_push_update_->Send(buffer);
 
         continue;
       }
 
-      const char cluster_line[] = "Cluster:";
-      found = line.find(cluster_line);
-      if (found != std::string::npos) {
-        pb::comm::ZigBeeMsg::NetworkMgmtCmd::ClusterDescription* last_cluster =
-            last_endpoint->add_clusters();
-
-        try {
-          const int cluster_id =
-              stoi(line.substr(found + sizeof cluster_line, 6), 0, 16);
-          last_cluster->set_cluster_id(cluster_id);
-        } catch (...) {
-          std::cerr << "Not valid value from ZigBeeGateway" << std::endl;
-          zmq_push_error_->Send("Not valid value from ZigBeeGateway");
-          return false;
+      if (bulding_discovery_result) {
+        const char node_index_line[] = "Node Index";
+        found = line.find(node_index_line);
+        if (found != std::string::npos) {
+          zigbee_msg.mutable_network_mgmt_cmd()->add_connected_nodes();
+          continue;
         }
 
-        found = line.find("Server");
-        if (found == std::string::npos) {
-          last_cluster->set_type(
-              pb::comm::ZigBeeMsg::NetworkMgmtCmd::ClusterDescription::CLIENT_OUT);
+        pb::comm::ZigBeeMsg::NetworkMgmtCmd::NodeDescription* last_node;
+        const int nodes_size =
+            zigbee_msg.mutable_network_mgmt_cmd()->connected_nodes_size();
+        if (nodes_size > 0) {
+          last_node =
+              zigbee_msg.mutable_network_mgmt_cmd()->mutable_connected_nodes(
+                  nodes_size - 1);
         } else {
-          last_cluster->set_type(
-              pb::comm::ZigBeeMsg::NetworkMgmtCmd::ClusterDescription::SERVER_IN);
+          continue;
         }
 
-        continue;
+        const char node_id_line[] = "NodeId";
+        found = line.find(node_id_line);
+        if (found != std::string::npos) {
+          try {
+            const int node_id =
+                stoi(line.substr(found + sizeof node_id_line + 1, 6), 0, 16);
+            last_node->set_node_id(node_id);
+          } catch (...) {
+            std::cerr << "Not valid value from ZigBeeGateway" << std::endl;
+            zmq_push_error_->Send("Not valid value from ZigBeeGateway");
+            return false;
+          }
+
+          continue;
+        }
+
+        const char euid64_line[] = "Eui64";
+        found = line.find(euid64_line);
+        if (found != std::string::npos) {
+          const unsigned long long euid64 = strtoull(
+              line.substr(found + sizeof euid64_line + 1, 18).c_str(), 0, 16);
+          last_node->set_eui64(euid64);
+          continue;
+        }
+
+        const char endpoint_line[] = "EP";
+        found = line.find(endpoint_line);
+        if (found != std::string::npos) {
+          pb::comm::ZigBeeMsg::NetworkMgmtCmd::EndPointDescription*
+              new_endpoint = last_node->add_endpoints();
+
+          try {
+            const int endpoint_index =
+                stoi(line.substr(found + sizeof endpoint_line + 1,
+                                 line.length() - 1),
+                     0, 10);
+            new_endpoint->set_endpoint_index(endpoint_index);
+          } catch (...) {
+            std::cerr << "Not valid value from ZigBeeGateway" << std::endl;
+            zmq_push_error_->Send("Not valid value from ZigBeeGateway");
+            return false;
+          }
+
+          continue;
+        }
+
+        pb::comm::ZigBeeMsg::NetworkMgmtCmd::EndPointDescription* last_endpoint;
+        const int endpoints_size = last_node->endpoints_size();
+        if (endpoints_size > 0) {
+          last_endpoint = last_node->mutable_endpoints(endpoints_size - 1);
+        } else {
+          continue;
+        }
+
+        const char profile_id_line[] = "Profile ID";
+        found = line.find(profile_id_line);
+        if (found != std::string::npos) {
+          try {
+            const int profile_id =
+                stoi(line.substr(found + sizeof profile_id_line + 1, 6), 0, 16);
+            last_endpoint->set_profile_id(profile_id);
+          } catch (...) {
+            std::cerr << "Not valid value from ZigBeeGateway" << std::endl;
+            zmq_push_error_->Send("Not valid value from ZigBeeGateway");
+            return false;
+          }
+
+          continue;
+        }
+
+        const char device_id_line[] = "Device ID";
+        found = line.find(device_id_line);
+        if (found != std::string::npos) {
+          try {
+            const int device_id =
+                stoi(line.substr(found + sizeof device_id_line + 1, 6), 0, 16);
+            last_endpoint->set_device_id(device_id);
+          } catch (...) {
+            std::cerr << "Not valid value from ZigBeeGateway" << std::endl;
+            zmq_push_error_->Send("Not valid value from ZigBeeGateway");
+            return false;
+          }
+
+          continue;
+        }
+
+        const char cluster_line[] = "Cluster:";
+        found = line.find(cluster_line);
+        if (found != std::string::npos) {
+          pb::comm::ZigBeeMsg::NetworkMgmtCmd::ClusterDescription*
+              last_cluster = last_endpoint->add_clusters();
+
+          try {
+            const int cluster_id =
+                stoi(line.substr(found + sizeof cluster_line, 6), 0, 16);
+            last_cluster->set_cluster_id(cluster_id);
+          } catch (...) {
+            std::cerr << "Not valid value from ZigBeeGateway" << std::endl;
+            zmq_push_error_->Send("Not valid value from ZigBeeGateway");
+            return false;
+          }
+
+          found = line.find("Server");
+          if (found == std::string::npos) {
+            last_cluster->set_type(pb::comm::ZigBeeMsg::NetworkMgmtCmd::
+                                       ClusterDescription::CLIENT_OUT);
+          } else {
+            last_cluster->set_type(pb::comm::ZigBeeMsg::NetworkMgmtCmd::
+                                       ClusterDescription::SERVER_IN);
+          }
+
+          continue;
+        }
       }
     }
   }

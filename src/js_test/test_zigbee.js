@@ -15,6 +15,7 @@ var creator_ip = '127.0.0.1';
 var create_zigbee_base_port = 40000 + 1;
 
 var zmq = require('zmq');
+require('timers')
 
 
 // Import MATRIX Proto messages
@@ -35,22 +36,7 @@ var nodes_discovered = 3;
 var nodes_id = [];
 var endpoints_index = [];
 
-// ------------------------- ZigBee --------------------------
-var config = matrix_io.malos.v1.driver.DriverConfig.create({
-  zigbeeMessage: matrix_io.malos.v1.comm.ZigbeeMsg.create(
-    type: matrix_io.malos.v1.comm.ZigBeeMsg.ZigBeeCmdType.NETWORK_MGMT,
-    zclCmd: matrix_io.malos.v1.comm.ZigBeeMsg.ZCLCmd.create({ 
-      onOffCmd: matrix_io.malos.v1.comm.ZigBeeMsg.ZCLCmd.OnOffCmd.create({
-	type: matrix_io.malos.v1.comm.ZigBeeMsg.ZCLCmd.OnOffCmd.ZCLOnOffCmdType.ON
-      })
-      colorControl: matrix_io.malos.v1.comm.ZigBeeMsg.ZCLCmd.create({
-        type: matrix_io.malos.v1.comm.ZigBeeMsg.ZCLCmd.
-      })
-    }),
-    networkMgmtCmd: matrix_io.malos.v1.comm.ZigBeeMsg.NetworkMrgmtCmd.create({
-     }) 
-  }) 
-});
+
 
 //-----  Print the errors that the ZigBee driver sends ------------
 var errorSocket = zmq.socket('sub');
@@ -62,10 +48,6 @@ errorSocket.on('message', function(error_message) {
                        "\n");
 });
 
-// ----- Create the socket for sending data to the ZigBee driver ----
-
-var configSocket = zmq.socket('push');
-configSocket.connect('tcp://' + creator_ip + ':' + create_zigbee_base_port);
 
 // ------------ Starting to ping the driver -----------------------
 
@@ -83,62 +65,66 @@ subSocket.connect('tcp://' + creator_ip + ':' + (create_zigbee_base_port + 3));
 subSocket.subscribe('');
 subSocket.on('message', function(buffer) {
 
-  var zig_msg = new matrixMalosBuilder.ZigBeeMsg.decode(buffer);
+  var zig_msg = matrix_io.malos.v1.comm.ZigBeeMsg.decode(buffer);
 
-  if (zig_msg.type == matrixMalosBuilder.ZigBeeMsg.ZigBeeCmdType.ZCL) {
-  } else if (matrixMalosBuilder.ZigBeeMsg.ZigBeeCmdType.NETWORK_MGMT) {
-    switch (zig_msg.network_mgmt_cmd.type) {
-      case matrixMalosBuilder.ZigBeeMsg.NetworkMgmtCmd.NetworkMgmtCmdTypes
+  if (zig_msg.type == matrix_io.malos.v1.comm.ZigBeeMsg.ZigBeeCmdType.ZCL) {
+    // no implemented in this example
+  } else if (matrix_io.malos.v1.comm.ZigBeeMsg.ZigBeeCmdType.NETWORK_MGMT) {
+    switch (zig_msg.networkMgmtCmd.type) {
+      case matrix_io.malos.v1.comm.ZigBeeMsg.NetworkMgmtCmd.NetworkMgmtCmdTypes
           .CREATE_NWK:
-        // console.log('CREATE_NWK');
+        // console.log('CREATE_NWK message received');
         break;
-      case matrixMalosBuilder.ZigBeeMsg.NetworkMgmtCmd.NetworkMgmtCmdTypes
+      case matrix_io.malos.v1.comm.ZigBeeMsg.NetworkMgmtCmd.NetworkMgmtCmdTypes
           .LEAVE_NWK:
-        // console.log('LEAVE_NWK');
+        // console.log('LEAVE_NWK message received');
         break;
-      case matrixMalosBuilder.ZigBeeMsg.NetworkMgmtCmd.NetworkMgmtCmdTypes
+      case matrix_io.malos.v1.comm.ZigBeeMsg.NetworkMgmtCmd.NetworkMgmtCmdTypes
           .NODE_LEAVE_NWK:
-        // console.log('NODE_LEAVE_NWK');
+        // console.log('NODE_LEAVE_NWK message received');
         break;
-      case matrixMalosBuilder.ZigBeeMsg.NetworkMgmtCmd.NetworkMgmtCmdTypes
+      case matrix_io.malos.v1.comm.ZigBeeMsg.NetworkMgmtCmd.NetworkMgmtCmdTypes
           .PERMIT_JOIN:
-        // console.log('PERMIT_JOIN');
+        // console.log('PERMIT_JOIN message received');
         break;
-      case matrixMalosBuilder.ZigBeeMsg.NetworkMgmtCmd.NetworkMgmtCmdTypes
+      case matrix_io.malos.v1.comm.ZigBeeMsg.NetworkMgmtCmd.NetworkMgmtCmdTypes
           .NODE_INFO:
-        // console.log('NODE_INFO');
+        // console.log('NODE_INFO message received');
         break;
-      case matrixMalosBuilder.ZigBeeMsg.NetworkMgmtCmd.NetworkMgmtCmdTypes
+      case matrix_io.malos.v1.comm.ZigBeeMsg.NetworkMgmtCmd.NetworkMgmtCmdTypes
           .DISCOVERY_INFO:
-
+        // console.log('DISCOVERY_INFO message received');
         if (status == waiting_for_devices) {
-          var zig_msg = new matrixMalosBuilder.ZigBeeMsg.decode(buffer).toRaw();
+          var zig_msg =
+              matrix_io.malos.v1.comm.ZigBeeMsg.decode(buffer);
           // Looking  for nodes that have an on-off cluster
           console.log('Device(s) found!!!');
+          console.log(zig_msg);
+          console.log(zig_msg.networkMgmtCmd.connectedNodes);
           console.log('Looking for nodes that have an on-off cluster.');
-          for (var i = 0; i < zig_msg.network_mgmt_cmd.connected_nodes.length;
+          for (var i = 0; i < zig_msg.networkMgmtCmd.connectedNodes.length;
                i++) {
             for (var j = 0;
                  j <
-                 zig_msg.network_mgmt_cmd.connected_nodes[i].endpoints.length;
+                 zig_msg.networkMgmtCmd.connectedNodes[i].endpoints.length;
                  j++) {
-              for (var k = 0; k < zig_msg.network_mgmt_cmd.connected_nodes[i]
+              for (var k = 0; k < zig_msg.networkMgmtCmd.connectedNodes[i]
                                       .endpoints[j]
                                       .clusters.length;
                    k++) {
                 // Adding just nodes with  On/Off cluster
-                if (zig_msg.network_mgmt_cmd.connected_nodes[i]
+                if (zig_msg.networkMgmtCmd.connectedNodes[i]
                         .endpoints[j]
                         .clusters[k]
-                        .cluster_id == 6) {
-                  // saving the node_id
+                        .clusterId == 6) {
+                  // saving the nodeId
                   nodes_id
-                      .push(zig_msg.network_mgmt_cmd.connected_nodes[i].node_id)
-                      // saving the endpoint_index
+                      .push(zig_msg.networkMgmtCmd.connectedNodes[i].nodeId)
+                      // saving the endpointIndex
                       endpoints_index.push(
-                          zig_msg.network_mgmt_cmd.connected_nodes[i]
+                          zig_msg.networkMgmtCmd.connectedNodes[i]
                               .endpoints[j]
-                              .endpoint_index);
+                              .endpointIndex);
                   continue;
                 }
               }
@@ -159,154 +145,177 @@ subSocket.on('message', function(buffer) {
         }
 
         break;
-      case matrixMalosBuilder.ZigBeeMsg.NetworkMgmtCmd.NetworkMgmtCmdTypes
+      case matrix_io.malos.v1.comm.ZigBeeMsg.NetworkMgmtCmd.NetworkMgmtCmdTypes
           .RESET_PROXY:
-        // console.log('RESET_PROXY');
+        // console.log('RESET_PROXY message received');
         break;
-      case matrixMalosBuilder.ZigBeeMsg.NetworkMgmtCmd.NetworkMgmtCmdTypes
+      case matrix_io.malos.v1.comm.ZigBeeMsg.NetworkMgmtCmd.NetworkMgmtCmdTypes
           .IS_PROXY_ACTIVE:
-
-        if (zig_msg.network_mgmt_cmd.is_proxy_active) {
+        // console.log('IS_PROXY_ACTIVE message received');
+        if (zig_msg.networkMgmtCmd.isProxyActive) {
           console.log('Gateway connected');
-          gateway_up = true;  // zig_msg.network_mgmt_cmd.is_proxy_activee;
+          gateway_up = true;
         } else {
           console.log('Gateway Reset Failed.');
           process.exit(1);
         }
+        
         console.log('Requesting ZigBee Network Status');
-        config.zigbee_message.network_mgmt_cmd
-            .set_type(matrixMalosBuilder.ZigBeeMsg.NetworkMgmtCmd
-                          .NetworkMgmtCmdTypes.NETWORK_STATUS)
-                configSocket.send(config.encode().toBuffer());
+        zb_network_msg.zigbeeMessage.networkMgmtCmd.type =
+            matrix_io.malos.v1.comm.ZigBeeMsg.NetworkMgmtCmd.NetworkMgmtCmdTypes
+                .NETWORK_STATUS;
+        configSocket.send(
+            matrix_io.malos.v1.driver.DriverConfig.encode(zb_network_msg)
+                .finish());
         status = waiting_for_network_status;
         break;
-      case matrixMalosBuilder.ZigBeeMsg.NetworkMgmtCmd.NetworkMgmtCmdTypes
+      case matrix_io.malos.v1.comm.ZigBeeMsg.NetworkMgmtCmd.NetworkMgmtCmdTypes
           .NETWORK_STATUS:
-
+        // console.log('NETWORK_STATUS message received');
         if (status != waiting_for_network_status) {
           break;
         }
-
         process.stdout.write('NETWORK_STATUS: ')
+        status = none;
 
-            status = none;
-
-        switch (zig_msg.network_mgmt_cmd.network_status.type) {
-          case matrixMalosBuilder.ZigBeeMsg.NetworkMgmtCmd.NetworkStatus.Status
-              .NO_NETWORK:
+        switch (zig_msg.networkMgmtCmd.networkStatus.type) {
+          case matrix_io.malos.v1.comm.ZigBeeMsg.NetworkMgmtCmd.NetworkStatus
+              .Status.NO_NETWORK:
             console.log('NO_NETWORK');
             console.log('Creating a ZigBee Network');
-            config.zigbee_message.network_mgmt_cmd
-                .set_type(matrixMalosBuilder.ZigBeeMsg.NetworkMgmtCmd
-                              .NetworkMgmtCmdTypes.CREATE_NWK)
-                    configSocket.send(config.encode().toBuffer());
+            zb_network_msg.zigbeeMessage.networkMgmtCmd.type =
+                matrix_io.malos.v1.comm.ZigBeeMsg.NetworkMgmtCmd
+                    .NetworkMgmtCmdTypes.CREATE_NWK;
+            configSocket.send(
+                matrix_io.malos.v1.driver.DriverConfig.encode(zb_network_msg)
+                    .finish());
             status = waiting_for_network_status;
             break;
-          case matrixMalosBuilder.ZigBeeMsg.NetworkMgmtCmd.NetworkStatus.Status
-              .JOINING_NETWORK:
-            console.log('JOINING_NETWORK');
+          case matrix_io.malos.v1.comm.ZigBeeMsg.NetworkMgmtCmd.NetworkStatus
+              .Status.JOINING_NETWORK:
+            console.log('JOINING_NETWORK message received');
             break;
-          case matrixMalosBuilder.ZigBeeMsg.NetworkMgmtCmd.NetworkStatus.Status
-              .JOINED_NETWORK:
-            console.log('JOINED_NETWORK');
-            config.zigbee_message.network_mgmt_cmd.set_type(
-                matrixMalosBuilder.ZigBeeMsg.NetworkMgmtCmd.NetworkMgmtCmdTypes
-                    .PERMIT_JOIN);
+          case matrix_io.malos.v1.comm.ZigBeeMsg.NetworkMgmtCmd.NetworkStatus
+              .Status.JOINED_NETWORK:
+            console.log('JOINED_NETWORK message received');
 
-            // Send a permit join commnad
-            var permit_join_params = new matrixMalosBuilder.ZigBeeMsg
-                                         .NetworkMgmtCmd.PermitJoinParams;
-            permit_join_params.setTime(60);
-            config.zigbee_message.network_mgmt_cmd.set_permit_join_params(
-                permit_join_params);
+            zb_network_msg.zigbeeMessage.networkMgmtCmd.type =
+                matrix_io.malos.v1.comm.ZigBeeMsg.NetworkMgmtCmd
+                    .NetworkMgmtCmdTypes.PERMIT_JOIN;
 
-            configSocket.send(config.encode().toBuffer());
+            zb_network_msg.zigbeeMessage.networkMgmtCmd.permitJoinParams
+                .time = 60;
+
+            configSocket.send(
+                matrix_io.malos.v1.driver.DriverConfig.encode(zb_network_msg)
+                    .finish());
 
             console.log('Please reset your zigbee devices');
             console.log('... Waiting 60 sec for new devices');
             status = waiting_for_devices;
             break;
-          case matrixMalosBuilder.ZigBeeMsg.NetworkMgmtCmd.NetworkStatus.Status
-              .JOINED_NETWORK_NO_PARENT:
+          case matrix_io.malos.v1.comm.ZigBeeMsg.NetworkMgmtCmd.NetworkStatus
+              .Status.JOINED_NETWORK_NO_PARENT:
             console.log('JOINED_NETWORK_NO_PARENT');
             break;
-          case matrixMalosBuilder.ZigBeeMsg.NetworkMgmtCmd.NetworkStatus.Status
-              .LEAVING_NETWORK:
-            console.log('LEAVING_NETWORK');
+          case matrix_io.malos.v1.comm.ZigBeeMsg.NetworkMgmtCmd.NetworkStatus
+              .Status.LEAVING_NETWORK:
+            console.log('LEAVING_NETWORK message received');
             break;
         }
-
         break;
     }
-  } else if (matrixMalosBuilder.ZigBeeMsg.NetworkMgmtCmd.NetworkMgmtCmdTypes
-                 .NETWORK_MGMT) {
+  } else if (
+      matrix_io.malos.v1.comm.ZigBeeMsg.NetworkMgmtCmd.NetworkMgmtCmdTypes
+          .NETWORK_MGMT) {
+    // no implemented in this example
+  } else{
+    // console.log('Wrong type value in ZigBeeCmdType');
   }
-
 });
 
-ResetGateway();
-
-function ResetGateway() {
-  // --- Setting the delay_between_updates and set_timeout_after_last_ping --
-  console.log('Setting the Zigbee Driver');
-  config.set_delay_between_updates(1);
-  config.set_timeout_after_last_ping(1);
-  configSocket.send(config.encode().toBuffer());
-
-  // ---- Creating the base proto zigbee message --------------------
-  config = new matrixMalosBuilder.DriverConfig;
-
-  var zig_msg = new matrixMalosBuilder.ZigBeeMsg;
-  var network_mgmt_cmd = new matrixMalosBuilder.ZigBeeMsg.NetworkMgmtCmd;
-  var zcl_cmd = new matrixMalosBuilder.ZigBeeMsg.ZCLCmd;
-  var onoff_cmd = new matrixMalosBuilder.ZigBeeMsg.ZCLCmd.OnOffCmd;
-  var colorcontrol_cmd =
-      new matrixMalosBuilder.ZigBeeMsg.ZCLCmd.ColorControlCmd;
-  var movetohueandsat_params = new matrixMalosBuilder.ZigBeeMsg.ZCLCmd
-                                   .ColorControlCmd.MoveToHueAndSatCmdParams;
-
-
-  zig_msg.set_zcl_cmd(zcl_cmd);
-  zig_msg.zcl_cmd.set_onoff_cmd(onoff_cmd);
-  zig_msg.zcl_cmd.set_colorcontrol_cmd(colorcontrol_cmd);
-  zig_msg.zcl_cmd.colorcontrol_cmd.set_movetohueandsat_params(
-      movetohueandsat_params);
-  zig_msg.set_network_mgmt_cmd(network_mgmt_cmd);
-  config.set_zigbee_message(zig_msg);
-
-  // ------------ Reseting the Gateway App -----------------------
-  console.log('Reseting the Gateway App');
-  config.zigbee_message.set_type(
-      matrixMalosBuilder.ZigBeeMsg.ZigBeeCmdType.NETWORK_MGMT);
-  config.zigbee_message.network_mgmt_cmd.set_type(
-      matrixMalosBuilder.ZigBeeMsg.NetworkMgmtCmd.NetworkMgmtCmdTypes
-          .RESET_PROXY);
-  configSocket.send(config.encode().toBuffer());
-
-  // ------------ Checking connection with the Gateway ----------------------
-  console.log('Checking connection with the Gateway');
-  config.zigbee_message.network_mgmt_cmd
-      .set_type(matrixMalosBuilder.ZigBeeMsg.NetworkMgmtCmd.NetworkMgmtCmdTypes
-                    .IS_PROXY_ACTIVE)
-          configSocket.send(config.encode().toBuffer());
-}
-
+// ---------------- Toggle ------------------  
 function ToggleNodes() {
-  if (!nodes_discovered) return;
-  config.zigbee_message.set_type(
-      matrixMalosBuilder.ZigBeeMsg.ZigBeeCmdType.ZCL);
-  config.zigbee_message.zcl_cmd.set_type(
-      matrixMalosBuilder.ZigBeeMsg.ZCLCmd.ZCLCmdType.ON_OFF);
-  config.zigbee_message.zcl_cmd.onoff_cmd.set_type(
-      matrixMalosBuilder.ZigBeeMsg.ZCLCmd.OnOffCmd.ZCLOnOffCmdType.TOGGLE);
+  var zb_toggle_msg = matrix_io.malos.v1.driver.DriverConfig.create({
+    zigbeeMessage: matrix_io.malos.v1.comm.ZigBeeMsg.create({
+      type: matrix_io.malos.v1.comm.ZigBeeMsg.ZigBeeCmdType.ZCL,
+      zclCmd: matrix_io.malos.v1.comm.ZigBeeMsg.ZCLCmd.create({
+        type: matrix_io.malos.v1.comm.ZigBeeMsg.ZCLCmd.OnOffCmd.ZCLOnOffCmdType
+                  .ON_OFF,
+        onoffCmd: matrix_io.malos.v1.comm.ZigBeeMsg.ZCLCmd.OnOffCmd.create({
+          type: matrix_io.malos.v1.comm.ZigBeeMsg.ZCLCmd.OnOffCmd
+                    .ZCLOnOffCmdType.TOGGLE,
+          nodeId: 0,
+          endpointIndex: 0
+        })
+      })
+    })
+  });
 
+  if (!nodes_discovered) return;
   setInterval(function() {
     for (var i = 0; i < nodes_id.length; i++) {
       process.stdout.write('Sending toggle to Node: ')
-          process.stdout.write(nodes_id[i] + "\n")
-              config.zigbee_message.zcl_cmd.set_node_id(nodes_id[i]);
-      config.zigbee_message.zcl_cmd.set_endpoint_index(endpoints_index[i]);
-      configSocket.send(config.encode().toBuffer());
+      process.stdout.write(nodes_id[i] + "\n")
+      zb_toggle_msg.zigbeeMessage.zclCmd.nodeId = nodes_id[i];
+      zb_toggle_msg.zigbeeMessage.zclCmd.endpointIndex = endpoints_index[i];
+      
+      configSocket.send(
+        matrix_io.malos.v1.driver.DriverConfig.encode(zb_toggle_msg).finish());
     }
   }, 2000);
 }
+
+
+function ResetGateway() {
+  console.log('Reseting the Gateway App');
+  zb_network_msg.zigbeeMessage.networkMgmtCmd.type =
+      matrix_io.malos.v1.comm.ZigBeeMsg.NetworkMgmtCmd.NetworkMgmtCmdTypes
+          .RESET_PROXY;
+  configSocket.send(
+      matrix_io.malos.v1.driver.DriverConfig.encode(zb_network_msg).finish());
+}
+
+function IsGatewayActive() {
+  console.log('Checking connection with the Gateway');
+  zb_network_msg.zigbeeMessage.networkMgmtCmd.type =
+      matrix_io.malos.v1.comm.ZigBeeMsg.NetworkMgmtCmd.NetworkMgmtCmdTypes
+          .IS_PROXY_ACTIVE;
+  configSocket.send(
+    matrix_io.malos.v1.driver.DriverConfig.encode(zb_network_msg).finish());
+}
+
+// ----- Create the socket for sending data to the ZigBee driver ---- 
+
+var configSocket = zmq.socket('push');
+configSocket.connect('tcp://' + creator_ip + ':' + create_zigbee_base_port);
+
+// ----------------    Start configuration --------------------- 
+
+var init_config = matrix_io.malos.v1.driver.DriverConfig.create({
+  delayBetweenUpdates: 1.0,  // 1 seconds between updates.
+  timeoutAfterLastPing: 1.0 // Stop sending updates 6 seconds after pings.
+});
+configSocket.send(
+  matrix_io.malos.v1.driver.DriverConfig.encode(init_config).finish());
+
+// ------------ Creating Basic Network Managment proto message--------
+
+var zb_network_msg = matrix_io.malos.v1.driver.DriverConfig.create({
+  zigbeeMessage: matrix_io.malos.v1.comm.ZigBeeMsg.create({
+    type: matrix_io.malos.v1.comm.ZigBeeMsg.ZigBeeCmdType.NETWORK_MGMT,
+    networkMgmtCmd: matrix_io.malos.v1.comm.ZigBeeMsg.NetworkMgmtCmd.create({
+      type: matrix_io.malos.v1.comm.ZigBeeMsg.NetworkMgmtCmd.NetworkMgmtCmdTypes
+                .PERMIT_JOIN,
+      permitJoinParams: matrix_io.malos.v1.comm.ZigBeeMsg.NetworkMgmtCmd
+                            .PermitJoinParams.create({time: 60})
+    })
+  })
+});
+
+ResetGateway();
+console.log('Waiting 3 sec .....\n');
+setTimeout(IsGatewayActive,3000);
+
+
+
