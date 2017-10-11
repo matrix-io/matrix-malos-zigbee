@@ -208,7 +208,7 @@ bool ZigbeeDriver::ProcessConfig(const pb::driver::DriverConfig& config) {
     } else if (zigbee_msg.network_mgmt_cmd().type() ==
                pb::comm::ZigBeeMsg::NetworkMgmtCmd::RESET_PROXY) {
       // Kill the ZigBeeGateway app
-      system("sudo pkill ZigBeeGateway");
+      system("pkill ZigBeeGateway");
 
       // Starting the app
       system(
