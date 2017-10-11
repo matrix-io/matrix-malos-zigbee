@@ -266,6 +266,7 @@ bool ZigbeeDriver::ProcessConfig(const pb::driver::DriverConfig& config) {
 bool ZigbeeDriver::SendUpdate() {
   std::string line;
 
+  if (tcp_client_.get() == nullptr)
   while (tcp_client_->GetLine(&line)) {
     line = Trim(line);
     const char network_state_line[] = "network state";
