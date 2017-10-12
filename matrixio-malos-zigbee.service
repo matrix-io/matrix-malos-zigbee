@@ -7,4 +7,4 @@ ExecStart=/usr/bin/malos_zigbee
 
 [Install]
 WantedBy=multi-user.target
-After=matrix-creator-malos.service
+After=matrixio-malos.service
