@@ -1,6 +1,6 @@
 #!/bin/bash -e
 
-echo "Enabling MALOS service"
-systemctl enable matrix-creator-malos-zigbee
+echo "Enabling MALOS ZigBee service"
+systemctl enable matrixio-malos-zigbee
 
 echo "Please restart your Raspberry Pi after installation"
