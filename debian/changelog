@@ -1,4 +1,4 @@
-matrixio-creator-malos-zigbee (0.1.2) unstable; urgency=medium
+matrixio-malos-zigbee (0.1.2) unstable; urgency=medium
 
   * Fix minor connection bugs in malos_zigbee
   * Changes to support the new way of using protobuffers in nodeJS example
