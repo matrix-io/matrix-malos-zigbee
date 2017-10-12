@@ -6,7 +6,7 @@ Build-Depends: debhelper (>= 9), cmake
 Standards-Version: 3.9.5
 Homepage: https://github.com/matrix-io/matrix-malos-zigbee
 
-Package: matrixio-creator-malos-zigbee
+Package: matrixio-malos-zigbee
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends},libmatrixio-malos-dev
 Description: Allows queries to MATRIX Creator hardware via ZMQ.
