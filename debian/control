@@ -2,13 +2,13 @@ Source: matrixio-malos-zigbee
 Section: embedded
 Priority: optional
 Maintainer: Admobilize <info@admobilize.com>
-Build-Depends: debhelper (>= 9), cmake
+Build-Depends: debhelper (>= 9), cmake, libmatrixio-malos-dev
 Standards-Version: 3.9.5
 Homepage: https://github.com/matrix-io/matrix-malos-zigbee
 
 Package: matrixio-malos-zigbee
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends},libmatrixio-malos-dev
+Depends: ${shlibs:Depends}, ${misc:Depends},libmatrixio-malos
 Description: Allows queries to MATRIX Creator hardware via ZMQ.
  Matrix Creator (https://creator.matrix.one) is a board that can be added
  to a Raspberry Pi v2 or v3. This board has many sensors. This program
