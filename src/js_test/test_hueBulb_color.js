@@ -244,13 +244,13 @@ function ToggleNodes() {
           type: matrix_io.malos.v1.comm.ZigBeeMsg.ZigBeeCmdType.ZCL,
           zclCmd: matrix_io.malos.v1.comm.ZigBeeMsg.ZCLCmd.create({
             type: matrix_io.malos.v1.comm.ZigBeeMsg.ZCLCmd.COLOR_CONTROL,
-            colorcontrolCmd: matrix_io.v1.comm.ZigBeeMsg.ZCLCmd.ColorControlCmd.create({
+            colorcontrolCmd: matrix_io.malos.v1.comm.ZigBeeMsg.ZCLCmd.ColorControlCmd.create({
               type: matrix_io.malos.v1.comm.ZigBeeMsg.ZCLCmd.ColorControlCmd
                         .ZCLColorControlCmdType.MOVETOHUEANDSAT,
               movetohueandsatParams: matrix_io.malos.v1.comm.ZigBeeMsg.ZCLCmd
                         .ColorControlCmd.MoveToHueAndSatCmdParams.create({
-                hue: Math.floor((Math.random()*338) + 153), //Hue colors uses range 153-500
-                transitionTime: 1, //transition time in ms for change color
+                hue: Math.floor((Math.random()*338) + 153),
+                transitionTime: 1,
                 saturation: 100,
                 nodeId:0,
                 endpointIndex: 0
