@@ -212,23 +212,23 @@ bool ZigbeeDriver::ProcessConfig(const pb::driver::DriverConfig& config) {
 
       tcp_client_.reset(new TcpClient());
 
-      std::cerr << "Connecting to the ZigbeeGateway" << std::endl;
-      zmq_push_error_->Send("Connecting to the ZigbeeGateway");
+      std::cerr << "Connecting to the zigbee gateway" << std::endl;
+      zmq_push_error_->Send("Connecting to the zigbee gateway");
 
-      // Wait a little bit for the ZigbeeGateway to start
+      // Wait a little bit for the zigbee gateway to start
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
       gateway_connection_status =
           tcp_client_->Connect(gateway_ip, gateway_port);
 
       if (gateway_connection_status) {
-        std::cerr << "Connected to the Gateway" << std::endl;
-        zmq_push_error_->Send("Connected to the Gateway");
+        std::cerr << "Connected to the zigbee gateway" << std::endl;
+        zmq_push_error_->Send("Connected to the zigbee gateway");
         return true;
       } else {
-        std::cerr << "Can not connect to the ZigbeeGateway" << std::endl
+        std::cerr << "Can not connect to the zigbee gateway" << std::endl
                   << std::flush;
-        zmq_push_error_->Send("Can not connect to the ZigbeeGateway");
+        zmq_push_error_->Send("Can not connect to the zigbee gateway");
         return false;
       }
 
@@ -276,8 +276,8 @@ bool ZigbeeDriver::SendUpdate() {
           network_type = stoi(
               line.substr(found + sizeof network_state_line + 1, 2), 0, 10);
         } catch (...) {
-          std::cerr << "Not valid value from ZigBeeGateway" << std::endl;
-          zmq_push_error_->Send("Not valid value from ZigBeeGateway");
+          std::cerr << "Not valid value from zigbee Gateway" << std::endl;
+          zmq_push_error_->Send("Not valid value from zigbee Gateway");
           return false;
         }
 
@@ -322,8 +322,8 @@ bool ZigbeeDriver::SendUpdate() {
                                LEAVING_NETWORK);
             break;
           default:
-            std::cerr << "Not valid value from ZigBeeGateway" << std::endl;
-            zmq_push_error_->Send("Not valid value from ZigBeeGateway");
+            std::cerr << "Not valid value from zigbee gateway" << std::endl;
+            zmq_push_error_->Send("Not valid value from zigbee gateway");
             return false;
             break;
         }
@@ -399,8 +399,8 @@ bool ZigbeeDriver::SendUpdate() {
                 stoi(line.substr(found + sizeof node_id_line + 1, 6), 0, 16);
             last_node->set_node_id(node_id);
           } catch (...) {
-            std::cerr << "Not valid value from ZigBeeGateway" << std::endl;
-            zmq_push_error_->Send("Not valid value from ZigBeeGateway");
+            std::cerr << "Not valid value from zigbee gateway" << std::endl;
+            zmq_push_error_->Send("Not valid value from zigbee gateway");
             return false;
           }
 
@@ -429,8 +429,8 @@ bool ZigbeeDriver::SendUpdate() {
                      0, 10);
             new_endpoint->set_endpoint_index(endpoint_index);
           } catch (...) {
-            std::cerr << "Not valid value from ZigBeeGateway" << std::endl;
-            zmq_push_error_->Send("Not valid value from ZigBeeGateway");
+            std::cerr << "Not valid value from zigbee gateway" << std::endl;
+            zmq_push_error_->Send("Not valid value from zigbee gateway");
             return false;
           }
 
@@ -453,8 +453,8 @@ bool ZigbeeDriver::SendUpdate() {
                 stoi(line.substr(found + sizeof profile_id_line + 1, 6), 0, 16);
             last_endpoint->set_profile_id(profile_id);
           } catch (...) {
-            std::cerr << "Not valid value from ZigBeeGateway" << std::endl;
-            zmq_push_error_->Send("Not valid value from ZigBeeGateway");
+            std::cerr << "Not valid value from zigbee gateway" << std::endl;
+            zmq_push_error_->Send("Not valid value from zigbee gateway");
             return false;
           }
 
@@ -469,8 +469,8 @@ bool ZigbeeDriver::SendUpdate() {
                 stoi(line.substr(found + sizeof device_id_line + 1, 6), 0, 16);
             last_endpoint->set_device_id(device_id);
           } catch (...) {
-            std::cerr << "Not valid value from ZigBeeGateway" << std::endl;
-            zmq_push_error_->Send("Not valid value from ZigBeeGateway");
+            std::cerr << "Not valid value from zigbee gateway" << std::endl;
+            zmq_push_error_->Send("Not valid value from zigbee gateway");
             return false;
           }
 
@@ -488,8 +488,8 @@ bool ZigbeeDriver::SendUpdate() {
                 stoi(line.substr(found + sizeof cluster_line, 6), 0, 16);
             last_cluster->set_cluster_id(cluster_id);
           } catch (...) {
-            std::cerr << "Not valid value from ZigBeeGateway" << std::endl;
-            zmq_push_error_->Send("Not valid value from ZigBeeGateway");
+            std::cerr << "Not valid value from zigbee gateway" << std::endl;
+            zmq_push_error_->Send("Not valid value from zigbee gateway");
             return false;
           }
 
