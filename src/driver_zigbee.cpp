@@ -212,7 +212,7 @@ bool ZigbeeDriver::ProcessConfig(const pb::driver::DriverConfig& config) {
 
       // Starting the app
       system(
-          "/usr/share/admobilize/matrix-creator/blob/ZigBeeGateway -n 1 "
+          "/usr/share/matrixlabs/matrixio-devices/blob/ZigBeeGateway -n 1 "
           "-p ttyS0 -v &");
 
       tcp_client_.reset(new TcpClient());
