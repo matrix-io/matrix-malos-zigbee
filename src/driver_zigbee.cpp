@@ -207,13 +207,8 @@ bool ZigbeeDriver::ProcessConfig(const pb::driver::DriverConfig& config) {
       command = "plugin device-database print-all";
     } else if (zigbee_msg.network_mgmt_cmd().type() ==
                pb::comm::ZigBeeMsg::NetworkMgmtCmd::RESET_PROXY) {
-      // Kill the ZigBeeGateway app
-      system("pkill ZigBeeGateway");
-
-      // Starting the app
-      system(
-          "/usr/share/admobilize/matrix-creator/blob/ZigBeeGateway -n 1 "
-          "-p ttyS0 -v &");
+      // Restarting the gateway service
+      system("sudo systemctl restart zigbeegateway.service");
 
       tcp_client_.reset(new TcpClient());
 
