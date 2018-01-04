@@ -8,6 +8,8 @@
   "devDependencies": {
    "matrix-protos": "0.0.11",
    "mic": "^2.1.1",
-   "zmq": "^2.15.3"
+   "zmq": "^2.15.3",
+   "async": "^2.6.0",
+   "lodash": "^3.10.0"
   }
 }

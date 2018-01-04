@@ -99,8 +99,6 @@ subSocket.on('message', function(buffer) {
               matrix_io.malos.v1.comm.ZigBeeMsg.decode(buffer);
           // Looking  for nodes that have an on-off cluster
           console.log('Device(s) found!!!');
-          console.log(zig_msg);
-          console.log(zig_msg.networkMgmtCmd.connectedNodes);
           console.log('Looking for nodes that have an on-off cluster.');
           for (var i = 0; i < zig_msg.networkMgmtCmd.connectedNodes.length;
                i++) {
