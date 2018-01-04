@@ -18,6 +18,7 @@ var zmq = require('zmq');
 require('timers')
 var async = require('async');
 var _ = require('lodash');
+
 // Import MATRIX Proto messages
 var matrix_io = require('matrix-protos').matrix_io
 
@@ -68,7 +69,7 @@ subSocket.on('message', function(buffer) {
   var zig_msg = matrix_io.malos.v1.comm.ZigBeeMsg.decode(buffer);
 
   if (matrix_io.malos.v1.comm.ZigBeeMsg.ZigBeeCmdType.NETWORK_MGMT) {
-    checkNetworkManagementType(zig_msg.networkMgmtCmd.type,
+    checkNetworkManagementType(zig_msg, zig_msg.networkMgmtCmd.type,
       matrix_io.malos.v1.comm.ZigBeeMsg.NetworkMgmtCmd.NetworkMgmtCmdTypes,
       buffer);
   }
@@ -112,7 +113,7 @@ function ToggleNodes() {
 }
 
 // ---------------------------- Function to check network management type ---------
-function checkNetworkManagementType(type, mgmTypes, buffer) {
+function checkNetworkManagementType(zigMessage, type, mgmTypes, buffer) {
   if (type === mgmTypes.DISCOVERY_INFO && status == waiting_for_devices) {
     var zig_msg = matrix_io.malos.v1.comm.ZigBeeMsg.decode(buffer);
     // Looking for nodes that have an on-off cluster
@@ -147,7 +148,7 @@ function checkNetworkManagementType(type, mgmTypes, buffer) {
 
   } else if(type === mgmTypes.IS_PROXY_ACTIVE) {
 
-    if (zig_msg.networkMgmtCmd.isProxyActive) {
+    if (zigMessage.networkMgmtCmd.isProxyActive) {
       console.log('Gateway connected');
       gateway_up = true;
     } else {
@@ -162,7 +163,7 @@ function checkNetworkManagementType(type, mgmTypes, buffer) {
   } else if (type === mgmTypes.NETWORK_STATUS && status == waiting_for_network_status) {
     process.stdout.write('NETWORK_STATUS: ');
     status = none;
-    checkNetwork(zig_msg.networkMgmtCmd.networkStatus.type,
+    checkNetwork(zigMessage.networkMgmtCmd.networkStatus.type,
       matrix_io.malos.v1.comm.ZigBeeMsg.NetworkMgmtCmd.NetworkStatus.Status);
   }
 }
@@ -170,33 +171,33 @@ function checkNetworkManagementType(type, mgmTypes, buffer) {
 // ---------------------------- Function to check network status -------
 function checkNetwork(type, networkStatus) {
   
-    const networkTypes = matrix_io.malos.v1.comm.ZigBeeMsg.NetworkMgmtCmd.NetworkMgmtCmdTypes;
-  
-    if (type === networkStatus.NO_NETWORK){
-      console.log('NO_NETWORK');
-      console.log('Creating a ZigBee Network');
-  
-      zb_network_msg.zigbeeMessage.networkMgmtCmd.type =networkTypes.CREATE_NWK;
-      configSocket.send(matrix_io.malos.v1.driver.DriverConfig.encode(zb_network_msg).finish());
-      status = waiting_for_network_status;
-    } else if (type === networkStatus.JOINED_NETWORK){
-      console.log('JOINED_NETWORK message received');
-      zb_network_msg.zigbeeMessage.networkMgmtCmd.type = networkTypes.PERMIT_JOIN;
-      zb_network_msg.zigbeeMessage.networkMgmtCmd.permitJoinParams.time = 60;
-      configSocket.send(matrix_io.malos.v1.driver.DriverConfig.encode(zb_network_msg).finish());
+  const networkTypes = matrix_io.malos.v1.comm.ZigBeeMsg.NetworkMgmtCmd.NetworkMgmtCmdTypes;
 
-      console.log('Please reset your zigbee devices');
-      console.log('... Waiting 60 sec for new devices');
-      status = waiting_for_devices;
-    } else {
-      const message = type === status.JOINING_NETWORK ? 'JOINING_NETWORK message received' 
-                    : type === status.JOINED_NETWORK_NO_PARENT ? 'JOINED_NETWORK_NO_PARENT'
-                    : type === status.LEAVING_NETWORK ? 'LEAVING_NETWORK message received'
-                    : null;
-      if(!_.isNull(message)) console.log(message);
-      console.log('JOINING_NETWORK message received');
-    }
+  if (type === networkStatus.NO_NETWORK){
+    console.log('NO_NETWORK');
+    console.log('Creating a ZigBee Network');
+
+    zb_network_msg.zigbeeMessage.networkMgmtCmd.type =networkTypes.CREATE_NWK;
+    configSocket.send(matrix_io.malos.v1.driver.DriverConfig.encode(zb_network_msg).finish());
+    status = waiting_for_network_status;
+  } else if (type === networkStatus.JOINED_NETWORK){
+    console.log('JOINED_NETWORK message received');
+    zb_network_msg.zigbeeMessage.networkMgmtCmd.type = networkTypes.PERMIT_JOIN;
+    zb_network_msg.zigbeeMessage.networkMgmtCmd.permitJoinParams.time = 60;
+    configSocket.send(matrix_io.malos.v1.driver.DriverConfig.encode(zb_network_msg).finish());
+
+    console.log('Please reset your zigbee devices');
+    console.log('... Waiting 60 sec for new devices');
+    status = waiting_for_devices;
+  } else {
+    const message = type === status.JOINING_NETWORK ? 'JOINING_NETWORK message received' 
+                  : type === status.JOINED_NETWORK_NO_PARENT ? 'JOINED_NETWORK_NO_PARENT'
+                  : type === status.LEAVING_NETWORK ? 'LEAVING_NETWORK message received'
+                  : null;
+    if(!_.isNull(message)) console.log(message);
+    console.log('JOINING_NETWORK message received');
   }
+}
 
 function ResetGateway() {
   console.log('Reseting the Gateway App');
