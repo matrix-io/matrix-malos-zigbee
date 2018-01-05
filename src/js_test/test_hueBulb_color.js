@@ -79,7 +79,7 @@ subSocket.on('message', function(buffer) {
 function ToggleNodes() {
   if (!nodes_discovered) return;
   setInterval(function() {
-    for (var i = 0; i < nodes_id.length; i++){
+    nodes_id.map(function(){
       var zb_toggle_msg = matrix_io.malos.v1.driver.DriverConfig.create({
         zigbeeMessage: matrix_io.malos.v1.comm.ZigBeeMsg.create({
           type: matrix_io.malos.v1.comm.ZigBeeMsg.ZigBeeCmdType.ZCL,
@@ -108,7 +108,7 @@ function ToggleNodes() {
       
       configSocket.send(
         matrix_io.malos.v1.driver.DriverConfig.encode(zb_toggle_msg).finish());
-    }
+    });
   }, 2000);
 }
 
