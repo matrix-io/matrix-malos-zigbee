@@ -274,19 +274,21 @@ function ToggleNodes() {
 After your device is connected and you want to send commands to it, first you need to configure the message that you want to send. Let's start with turning on/off the device first.
 
 #### Turning on/off device (s)
-To turn on/off your device you have to create the message with the `DriverConfig` function `create({})` that receives the properties `type` and another property called `zclCmd` (since the type we are passing is the `matrix_io.malos.v1.comm.ZigBeeCmdType.ZCL` then we have to use this `zclCmd` property). These properties names all are defined in matrix-protos dependecie.
-When passing the `zclCmd` property, we need to use the function `create({})` from the `matrix_io.malos.v1.comm.ZigBeeMsg.ZCLCmd` to configure this zclCmd Object.
-Now this (second) function create({}) will receive the property `type` (from now on this can be changed to use whatever message you want, like turning on/off, color control, level or identify commands).
-Since we are going to turn on/off the device, the type should be the `ON_OFF` in the `matrix_io.malos.v1.comm.ZigBeeMsg.ZCLCmd.ZCLCmdType.ON_OFF` (the types inside the ZCLOnOffCmdType are `ON_OFF`, `LEVEL`, `COLOR_CONTROL` and `IDENTIFY`.
+To turn on/off your device you have to create the message with the `DriverConfig` function `create({})` that receives the properties `type` and another property called `zclCmd` (since the type we are passing is the `ZCL` then we have to use this `zclCmd` property). These properties names all are defined in matrix-protos dependecie. When passing the `zclCmd` property, we need to use the function `create({})` from the `matrix_io.malos.v1.comm.ZigBeeMsg.ZCLCmd` to configure this zclCmd Object.
+
+Now this (second) function `create({})` will receive the property `type` (from now on this can be changed to use whatever message you want, like turning on/off, color control, level or identify commands). Since we are going to turn on/off the device, the type should be the `ON_OFF` in the `matrix_io.malos.v1.comm.ZigBeeMsg.ZCLCmd.ZCLCmdType.ON_OFF` (the types inside the ZCLOnOffCmdType are `ON_OFF`, `LEVEL`, `COLOR_CONTROL` and `IDENTIFY`.
+
 Each type of `ZCLCmdType` are related to a property that you should pass in the second function `create({})`. These are the correlation of types and propertys:
 + Type: ON_OFF ->  Property: onoffCmd
 + Type: LEVEL -> Property: levelCmd
 + Type: COLOR_CONTROL -> Property: colorcontrolCmd
 + Type: IDENTIFY -> Property: identifyCmd
+
 As the `zclCmd` the `onoffCmd` (and the others properties) needs to create the object with the function `create({})`. Since we want to turn on/off the device we just need to pass the type of the command we want to execute. The `OnOffCmd` has three types of commands and they all are inside the `OnOffCmd.ZCLOnOffCmdType`:
 + ON
 + OFF
 + TOGGLE
+
 After creating the zigbee message as specified we just need to encode and send the message as explained in the `Controlling the devices` section above. Your zigbee message should be something like this: 
 
 ```
@@ -318,6 +320,7 @@ Following the example of `Turning on/off device(s)`, first we choose the type `C
 + MOVETOHUE: This type controls the color that will be changed in the device
 + MOVETOSAT: This type controls the saturation of the light in the device
 + MOVETOHUEANDSAT: This type controls both the color and saturation in the device
+
 After choosing the property we want to work, we call their respective function `create({})` and pass their properties and values. For the first type (MOVETOHUE) the properties are `hue` (an integer), `transitionTime` (an integer) and `direction` (specified in `MoveToHueCmdParams.DirectionParam`). These properties are not required, if not passed they all are setted to a default value. Then you should have something like this:
 
 ```
