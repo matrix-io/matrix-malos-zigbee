@@ -13,11 +13,11 @@ echo "deb https://apt.matrix.one/raspbian $(lsb_release -sc) main" | sudo tee /e
 sudo apt-get update;
 sudo apt-get upgrade;
 sudo apt-get install cmake g++ git;
-apt-get install --yes libmatrixio-malos-dev libmatrixio-protos-dev
+sudo apt-get install --yes libmatrixio-malos-dev libmatrixio-protos-dev
 ```
 ### Installing
 ```
-sudo apt-get install matrix-creator-malos-zigbee
+sudo apt-get install matrixio-malos-zigbee
 sudo reboot
 ```
 ### Cloning & compiling
