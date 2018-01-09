@@ -5,21 +5,25 @@ The zigbee driver allows application to access the zigbee capabilities of the MA
 ### Pre-Requisites
 cmake, git, g++  and 0MQ
 ```
-echo "deb http://packages.matrix.one/matrix-creator/ ./" | sudo tee --append /etc/apt/sources.list;
+# Add repo and key
+curl https://apt.matrix.one/doc/apt-key.gpg | sudo apt-key add -
+echo "deb https://apt.matrix.one/raspbian $(lsb_release -sc) main" | sudo tee /etc/apt/sources.list.d/matrixlabs.list
+
+# Update packages and install
 sudo apt-get update;
 sudo apt-get upgrade;
 sudo apt-get install cmake g++ git;
+sudo apt-get install --yes libmatrixio-malos-dev libmatrixio-protos-dev
 ```
 ### Installing
 ```
-sudo apt-get install matrix-creator-malos-zigbee
+sudo apt-get install matrixio-malos-zigbee
 sudo reboot
 ```
 ### Cloning & compiling
 ```
 git clone https://github.com/matrix-io/matrix-malos-zigbee.git
 cd matrix-malos-zigbee
-git submodule update --init
 mkdir build && cd build
 cmake ..
 make
@@ -267,5 +271,158 @@ function ToggleNodes() {
     }
   }, 2000);
 }
+...
+```
+
+## Configuring message 
+After your device is connected and you want to send commands to it, first you need to configure the message that you want to send. Let's start with turning on/off the device first.
+
+#### Turning on/off device (s)
+To turn on/off your device you have to create the message with the `DriverConfig` function `create({})` that receives the properties `type` and another property called `zclCmd` (since the type we are passing is the `ZCL` then we have to use this `zclCmd` property). These properties names all are defined in matrix-protos dependecie. When passing the `zclCmd` property, we need to use the function `create({})` from the `matrix_io.malos.v1.comm.ZigBeeMsg.ZCLCmd` to configure this zclCmd Object.
+
+Now this (second) function `create({})` will receive the property `type` (from now on this can be changed to use whatever message you want, like turning on/off, color control, level or identify commands). Since we are going to turn on/off the device, the type should be the `ON_OFF` in the `matrix_io.malos.v1.comm.ZigBeeMsg.ZCLCmd.ZCLCmdType.ON_OFF` (the types inside the ZCLOnOffCmdType are `ON_OFF`, `LEVEL`, `COLOR_CONTROL` and `IDENTIFY`.
+
+Each type of command from `ZCLCmdType` are related to a property that you should pass in the second function `create({})`. These are the correlation of types and propertys:
+
++ Type: ON_OFF ->  Property: onoffCmd
++ Type: LEVEL -> Property: levelCmd
++ Type: COLOR_CONTROL -> Property: colorcontrolCmd
++ Type: IDENTIFY -> Property: identifyCmd
+
+As the `zclCmd` the `onoffCmd` (and the others properties) needs to create the object with the function `create({})`. Since we want to turn on/off the device we just need to pass the type of the command we want to execute. The `OnOffCmd` has three types of commands and they all are inside the `OnOffCmd.ZCLOnOffCmdType`:
+
++ ON
++ OFF
++ TOGGLE
+
+After creating the zigbee message as specified we just need to encode and send the message as explained in the `Controlling the devices` section above. Your zigbee message should be something like this: 
+
+```
+...
+  var zb_toggle_msg = matrix_io.malos.v1.driver.DriverConfig.create({
+    zigbeeMessage: matrix_io.malos.v1.comm.ZigBeeMsg.create({
+      type: matrix_io.malos.v1.comm.ZigBeeMsg.ZigBeeCmdType.ZCL,
+      zclCmd: matrix_io.malos.v1.comm.ZigBeeMsg.ZCLCmd.create({
+        type: matrix_io.malos.v1.comm.ZigBeeMsg.ZCLCmd.ZCLCmdType.ON_OFF,
+        onoffCmd: matrix_io.malos.v1.comm.ZigBeeMsg.ZCLCmd.OnOffCmd.create({
+          type: matrix_io.malos.v1.comm.ZigBeeMsg.ZCLCmd.OnOffCmd
+                    .ZCLOnOffCmdType.TOGGLE,
+          nodeId: 0,
+          endpointIndex: 0
+        })
+      })
+    })
+  });
+...
+```
+
+#### Working with level control
+From now on the structure to work with commands are very simillar to the above one. Now we are going to work with level control, for that, first in the `zclCmd` property we need to set up the `type` as `ZCLCmdType.LEVEL`. The Level control has 2 types to work on, they are:
+
++ Type: MOVE_TO_LEVEL -> Property: moveToLevelParams
++ Type: MOVE -> Property: moveParams
+
+Now that you have choose the command type you want to work, you need to create the object with the function `create({})` for the respective command you are working. Each command has it owns propertys also, they are related like this:
+
+- MOVE_TO_LEVEL
+	- level (Integer)
+	- transitionTime (Integer)
+- MOVE
+	- move (Integer)
+	- rate (Integer)
+
+```
+...
+ var zb_toggle_msg = matrix_io.malos.v1.driver.DriverConfig.create({
+        zigbeeMessage: matrix_io.malos.v1.comm.ZigBeeMsg.create({
+          type: matrix_io.malos.v1.comm.ZigBeeMsg.ZigBeeCmdType.ZCL,
+          zclCmd: matrix_io.malos.v1.comm.ZigBeeMsg.ZCLCmd.create({
+            type: matrix_io.malos.v1.comm.ZigBeeMsg.ZCLCmd.LEVEL,
+            levelCmd: matrix_io.malos.v1.comm.ZigBeeMsg.ZCLCmd.LevelCmd.create({
+              type: matrix_io.malos.v1.comm.ZigBeeMsg.ZCLCmd.LevelCmd.ZCLLevelCmdType.MOVE,
+              moveParams: matrix_io.malos.v1.comm.ZigBeeMsg.ZCLCmd
+                        .LevelCmd.MoveCmdParams.create({
+				move: 10,
+				rate: 5,
+                nodeId: 0,
+                endpointIndex: 0
+              })
+            })
+          })
+        })
+      });
+...
+```
+
+#### Working with colors
+The structure to work with colors is very similar as working with turning on/off devices. When working with colors we have 3 more functions choose to work. They are:
+
++ Function MoveToHueCmdParams -> Type: MOVETOHUE -> Property: movetohueParams
++ Function MoveToSatCmdParams -> Type: MOVETOSAT -> Property: movetosatParams
++ Function MoveToHueAndSatCmdParams -> Type: MOVETOHUEANDSAT -> Property: movetohueandsatParams
+
+Following the example of `Turning on/off device(s)`, first we choose the type `COLOR_CONTROL` of the `ZCLCmd`. Then when creating object of the property `colorcontrolCmd`, we choose one of the types available to work with:
+
++ MOVETOHUE: This type controls the color that will be changed in the device
++ MOVETOSAT: This type controls the saturation of the light in the device
++ MOVETOHUEANDSAT: This type controls both the color and saturation in the device
+
+After choosing the property we want to work, we call their respective function `create({})` and pass their properties and values. For the first type (MOVETOHUE) the properties are `hue` (an integer), `transitionTime` (an integer) and `direction` (specified in `MoveToHueCmdParams.DirectionParam`). These properties are not required, if not passed they all are setted to a default value. Then you should have something like this:
+
+```
+...
+ var zb_toggle_msg = matrix_io.malos.v1.driver.DriverConfig.create({
+        zigbeeMessage: matrix_io.malos.v1.comm.ZigBeeMsg.create({
+          type: matrix_io.malos.v1.comm.ZigBeeMsg.ZigBeeCmdType.ZCL,
+          zclCmd: matrix_io.malos.v1.comm.ZigBeeMsg.ZCLCmd.create({
+            type: matrix_io.malos.v1.comm.ZigBeeMsg.ZCLCmd.COLOR_CONTROL,
+            colorcontrolCmd: matrix_io.malos.v1.comm.ZigBeeMsg.ZCLCmd.ColorControlCmd.create({
+              type: matrix_io.malos.v1.comm.ZigBeeMsg.ZCLCmd.ColorControlCmd
+                        .ZCLColorControlCmdType.MOVETOHUEANDSAT,
+              movetohueandsatParams: matrix_io.malos.v1.comm.ZigBeeMsg.ZCLCmd
+                        .ColorControlCmd.MoveToHueAndSatCmdParams.create({
+                hue: Math.floor((Math.random()*338) + 153),
+                transitionTime: 1,
+                saturation: 100,
+                nodeId:0,
+                endpointIndex: 0
+              })
+            })
+          })
+        })
+      });
+...
+```
+
+#### Identifying itself
+As said before, the Identify command structure works similar as the other ones. First we set the `type` property inside the `zclCmd` to `ZCLCmd.IDENTIFY`. The Identify command also has two type of commands with the follow properties:
+
+- IDENTIFY_ON
+	- endpoint (Integer)
+	- identifyTime (Integer)
+- IDENTIFY_OFF
+	- identifyTime (Integer)
+
+Then you should have something like this: 
+```
+...
+ var zb_toggle_msg = matrix_io.malos.v1.driver.DriverConfig.create({
+        zigbeeMessage: matrix_io.malos.v1.comm.ZigBeeMsg.create({
+          type: matrix_io.malos.v1.comm.ZigBeeMsg.ZigBeeCmdType.ZCL,
+          zclCmd: matrix_io.malos.v1.comm.ZigBeeMsg.ZCLCmd.create({
+            type: matrix_io.malos.v1.comm.ZigBeeMsg.ZCLCmd.IDENTIFY,
+            identifyCmd: matrix_io.malos.v1.comm.ZigBeeMsg.ZCLCmd.IdentifyCmd.create({
+              type: matrix_io.malos.v1.comm.ZigBeeMsg.ZCLCmd.IdentifyCmd.ZCLIdentifyCmdType.IDENTIFY_ON,
+              identifyOnParams: matrix_io.malos.v1.comm.ZigBeeMsg.ZCLCmd
+                        .IdentifyCmd.IdentifyOnCmdParams.create({
+				endpoint: 0,
+				identifyTime: 0,
+                nodeId: 0,
+                endpointIndex: 0
+              })
+            })
+          })
+        })
+      });
 ...
 ```

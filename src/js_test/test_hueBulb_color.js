@@ -77,25 +77,30 @@ subSocket.on('message', function(buffer) {
 
 // ---------------- Toggle ------------------  
 function ToggleNodes() {
-  var zb_toggle_msg = matrix_io.malos.v1.driver.DriverConfig.create({
-    zigbeeMessage: matrix_io.malos.v1.comm.ZigBeeMsg.create({
-      type: matrix_io.malos.v1.comm.ZigBeeMsg.ZigBeeCmdType.ZCL,
-      zclCmd: matrix_io.malos.v1.comm.ZigBeeMsg.ZCLCmd.create({
-        type: matrix_io.malos.v1.comm.ZigBeeMsg.ZCLCmd.OnOffCmd.ZCLOnOffCmdType
-                  .ON_OFF,
-        onoffCmd: matrix_io.malos.v1.comm.ZigBeeMsg.ZCLCmd.OnOffCmd.create({
-          type: matrix_io.malos.v1.comm.ZigBeeMsg.ZCLCmd.OnOffCmd
-                    .ZCLOnOffCmdType.TOGGLE,
-          nodeId: 0,
-          endpointIndex: 0
-        })
-      })
-    })
-  });
-
   if (!nodes_discovered) return;
   setInterval(function() {
-    for (var i = 0; i < nodes_id.length; i++) {
+    nodes_id.map(function(){
+      var zb_toggle_msg = matrix_io.malos.v1.driver.DriverConfig.create({
+        zigbeeMessage: matrix_io.malos.v1.comm.ZigBeeMsg.create({
+          type: matrix_io.malos.v1.comm.ZigBeeMsg.ZigBeeCmdType.ZCL,
+          zclCmd: matrix_io.malos.v1.comm.ZigBeeMsg.ZCLCmd.create({
+            type: matrix_io.malos.v1.comm.ZigBeeMsg.ZCLCmd.COLOR_CONTROL,
+            colorcontrolCmd: matrix_io.malos.v1.comm.ZigBeeMsg.ZCLCmd.ColorControlCmd.create({
+              type: matrix_io.malos.v1.comm.ZigBeeMsg.ZCLCmd.ColorControlCmd
+                        .ZCLColorControlCmdType.MOVETOHUEANDSAT,
+              movetohueandsatParams: matrix_io.malos.v1.comm.ZigBeeMsg.ZCLCmd
+                        .ColorControlCmd.MoveToHueAndSatCmdParams.create({
+                hue: Math.floor((Math.random()*338) + 153),
+                transitionTime: 1,
+                saturation: 100,
+                nodeId:0,
+                endpointIndex: 0
+              })
+            })
+          })
+        })
+      });
+
       process.stdout.write('Sending toggle to Node: ')
       process.stdout.write(nodes_id[i] + "\n")
       zb_toggle_msg.zigbeeMessage.zclCmd.nodeId = nodes_id[i];
@@ -103,7 +108,7 @@ function ToggleNodes() {
       
       configSocket.send(
         matrix_io.malos.v1.driver.DriverConfig.encode(zb_toggle_msg).finish());
-    }
+    });
   }, 2000);
 }
 
