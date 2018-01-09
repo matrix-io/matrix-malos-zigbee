@@ -13,7 +13,7 @@ echo "deb https://apt.matrix.one/raspbian $(lsb_release -sc) main" | sudo tee /e
 sudo apt-get update;
 sudo apt-get upgrade;
 sudo apt-get install cmake g++ git;
-sudo apt-get install --yes libmatrixio-malos-dev
+apt-get install --yes libmatrixio-malos-dev libmatrixio-protos-dev
 ```
 ### Installing
 ```
@@ -24,7 +24,6 @@ sudo reboot
 ```
 git clone https://github.com/matrix-io/matrix-malos-zigbee.git
 cd matrix-malos-zigbee
-git submodule update --init
 mkdir build && cd build
 cmake ..
 make
