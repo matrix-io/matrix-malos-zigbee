@@ -137,6 +137,20 @@ bool ZigbeeDriver::ProcessConfig(const pb::driver::DriverConfig& config) {
                           .movetohueandsat_params()
                           .transition_time());
         command += buf;
+      } else if (zigbee_msg.zcl_cmd().colorcontrol_cmd().type() ==
+                  pb::comm::ZigBeeMsg::ZCLCmd::ColorControlCmd::
+                      MOVETOCOLORTEMP) {
+        char buf[128];
+        std::snprintf(buf, sizeof buf, "movetocolortemp 0x%04X 0x%04X",
+                      zigbee_msg.zcl_cmd()
+                          .colorcontrol_cmd()
+                          .movetocolortemp_params()
+                          .color_temperature(),
+                      zigbee_msg.zcl_cmd()
+                          .colorcontrol_cmd()
+                          .movetocolortemp_params()
+                          .transition_time());
+        command += buf;
       } else {
         command_error = true;
       }
