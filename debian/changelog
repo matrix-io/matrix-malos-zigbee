@@ -1,3 +1,9 @@
+matrixio-malos-zigbee (0.1.4) unstable; urgency=medium
+
+  * Allows to set the color temperature (warm white <-> cold white) for non-color zigbee bulbs.
+
+ -- Yoel Ramos <yoel.castillo@admobilize.com>  Mon, 5 Mar 2018 12:00:00 +0000
+ 
 matrixio-malos-zigbee (0.1.3) unstable; urgency=medium
 
   * Fix in path for zigbee gateway
