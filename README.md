@@ -6,7 +6,7 @@ The zigbee driver allows application to access the zigbee capabilities of the MA
 cmake, git, g++  and 0MQ
 ```
 # Add repo and key
-curl https://apt.matrix.one/doc/apt-key.gpg | sudo apt-key add -
+curl -L https://apt.matrix.one/doc/apt-key.gpg | sudo apt-key add -
 echo "deb https://apt.matrix.one/raspbian $(lsb_release -sc) main" | sudo tee /etc/apt/sources.list.d/matrixlabs.list
 
 # Update packages and install
